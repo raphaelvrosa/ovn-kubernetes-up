@@ -128,9 +128,15 @@ func (c *Controller) syncNode(key string) error {
 	}
 	// We ensure node no re-route policies contemplating possible node IP
 	// address changes regardless of allocated services.
+
+	clusterNodesAddressSets, err := c.ensureClusterNodeAddressSets(c.addressSetFactory, c.nodeLister, config.IPv4Mode, config.IPv6Mode)
+	if err != nil {
+		return err
+	}
+
 	network := util.DefaultNetInfo{}
 	networkName := network.GetNetworkName()
-	err = c.ensureNoRerouteNodePolicies(c.nbClient, c.addressSetFactory, networkName, c.GetNetworkScopedClusterRouterName(), c.controllerName, c.nodeLister, config.IPv4Mode, config.IPv6Mode)
+	err = c.ensureNoRerouteNodePolicies(c.nbClient, c.addressSetFactory, networkName, c.GetNetworkScopedClusterRouterName(), c.controllerName, clusterNodesAddressSets, config.IPv4Mode, config.IPv6Mode)
 	if err != nil {
 		return err
 	}

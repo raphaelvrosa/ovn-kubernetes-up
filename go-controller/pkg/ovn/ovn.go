@@ -14,7 +14,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
-	listers "k8s.io/client-go/listers/core/v1"
 	ref "k8s.io/client-go/tools/reference"
 	"k8s.io/klog/v2"
 	v1pod "k8s.io/kubernetes/pkg/api/v1/pod"
@@ -437,7 +436,7 @@ func (oc *DefaultNetworkController) InitEgressServiceZoneController() (*egresssv
 	initClusterEgressPolicies := func(_ libovsdbclient.Client, _ addressset.AddressSetFactory, _ util.NetInfo, _ []*net.IPNet, _, _ string) error {
 		return nil
 	}
-	ensureNodeNoReroutePolicies := func(_ libovsdbclient.Client, _ addressset.AddressSetFactory, _, _, _ string, _ listers.NodeLister, _, _ bool) error {
+	ensureNodeNoReroutePolicies := func(_ libovsdbclient.Client, _ addressset.AddressSetFactory, _, _, _ string, _ addressset.AddressSet, _, _ bool) error {
 		return nil
 	}
 	// used only when IC=true
@@ -452,7 +451,7 @@ func (oc *DefaultNetworkController) InitEgressServiceZoneController() (*egresssv
 	}
 
 	return egresssvc_zone.NewController(oc.GetNetInfo(), ovntypes.DefaultNetworkControllerName, oc.client, oc.nbClient, oc.addressSetFactory,
-		initClusterEgressPolicies, ensureNodeNoReroutePolicies,
+		initClusterEgressPolicies, ensureNodeNoReroutePolicies, ensureClusterNodeAddressSets,
 		createDefaultNodeRouteToExternal,
 		oc.stopChan, oc.watchFactory.EgressServiceInformer(), oc.watchFactory.ServiceCoreInformer(),
 		oc.watchFactory.EndpointSliceCoreInformer(),

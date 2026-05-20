@@ -52,7 +52,9 @@ const (
 type InitClusterEgressPoliciesFunc func(client libovsdbclient.Client, addressSetFactory addressset.AddressSetFactory,
 	ni util.NetInfo, clusterSubnets []*net.IPNet, controllerName, routerName string) error
 type EnsureNoRerouteNodePoliciesFunc func(client libovsdbclient.Client, addressSetFactory addressset.AddressSetFactory,
-	networkName, controllerName, clusterRouter string, nodeLister corelisters.NodeLister, v4, v6 bool) error
+	networkName, clusterRouter, controllerName string, clusterNodesAddressSets addressset.AddressSet, v4, v6 bool) error
+type EnsureClusterNodeAddressSetsFunc func(addressSetFactory addressset.AddressSetFactory,
+	nodeLister corelisters.NodeLister, v4, v6 bool) (addressset.AddressSet, error)
 type DeleteLegacyDefaultNoRerouteNodePoliciesFunc func(nbClient libovsdbclient.Client, clusterRouter, nodeName string) error
 type CreateDefaultRouteToExternalFunc func(nbClient libovsdbclient.Client, clusterRouter, gwRouterName string, clusterSubnets []config.CIDRNetworkEntry, gatewayIPs []*net.IPNet) error
 
@@ -68,6 +70,7 @@ type Controller struct {
 
 	initClusterEgressPolicies         InitClusterEgressPoliciesFunc
 	ensureNoRerouteNodePolicies       EnsureNoRerouteNodePoliciesFunc
+	ensureClusterNodeAddressSets      EnsureClusterNodeAddressSetsFunc
 	createDefaultRouteToExternalForIC CreateDefaultRouteToExternalFunc
 
 	services       map[string]*svcState  // svc key -> state, for services that have sourceIPBy LBIP
@@ -125,6 +128,7 @@ func NewController(
 	addressSetFactory addressset.AddressSetFactory,
 	initClusterEgressPolicies InitClusterEgressPoliciesFunc,
 	ensureNoRerouteNodePolicies EnsureNoRerouteNodePoliciesFunc,
+	ensureClusterNodeAddressSets EnsureClusterNodeAddressSetsFunc,
 	createDefaultRouteToExternalForIC CreateDefaultRouteToExternalFunc,
 	stopCh <-chan struct{},
 	esInformer egressserviceinformer.EgressServiceInformer,
@@ -142,6 +146,7 @@ func NewController(
 		addressSetFactory:                 addressSetFactory,
 		initClusterEgressPolicies:         initClusterEgressPolicies,
 		ensureNoRerouteNodePolicies:       ensureNoRerouteNodePolicies,
+		ensureClusterNodeAddressSets:      ensureClusterNodeAddressSets,
 		createDefaultRouteToExternalForIC: createDefaultRouteToExternalForIC,
 		stopCh:                            stopCh,
 		services:                          map[string]*svcState{},
