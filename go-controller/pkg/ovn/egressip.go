@@ -189,7 +189,8 @@ type EgressIPController struct {
 	// at the same time by two different threads we end up creating duplicate
 	// QoS rules in database due to libovsdb cache race
 	// (3) to update nextHop during layer2 topology upgrade
-	nodeUpdateMutex *sync.Mutex
+	//nodeUpdateMutex *sync.Mutex
+	networkMutexes sync.Map // map[string]*sync.Mutex
 	// podAssignment is a cache used for keeping track of which egressIP status
 	// has been set up for each pod. The key is defined by getPodKey
 	podAssignment *syncmap.SyncMap[*podAssignmentState]
@@ -229,12 +230,12 @@ func NewEIPController(
 	controllerName string,
 ) *EgressIPController {
 	e := &EgressIPController{
-		nbClient:          nbClient,
-		kube:              kube,
-		watchFactory:      watchFactory,
-		recorder:          recorder,
-		egressIPCache:     syncmap.NewSyncMap[bool](),
-		nodeUpdateMutex:   &sync.Mutex{},
+		nbClient:      nbClient,
+		kube:          kube,
+		watchFactory:  watchFactory,
+		recorder:      recorder,
+		egressIPCache: syncmap.NewSyncMap[bool](),
+		//nodeUpdateMutex:   &sync.Mutex{},
 		podAssignment:     syncmap.NewSyncMap[*podAssignmentState](),
 		logicalPortCache:  portCache,
 		nodeZoneState:     syncmap.NewSyncMap[bool](),
@@ -256,6 +257,32 @@ func NewEIPController(
 		nadReconcilerConfig,
 	)
 	return e
+}
+
+// getNetworkMutex returns the mutex for a specific network, creating it if necessary.
+// This enables per-network locking for concurrent reconciliation of different networks.
+func (e *EgressIPController) getNetworkMutex(networkName string) *sync.Mutex {
+	// Try to load existing mutex
+	if mu, ok := e.networkMutexes.Load(networkName); ok {
+		return mu.(*sync.Mutex)
+	}
+
+	// Create new mutex
+	newMu := &sync.Mutex{}
+	actual, _ := e.networkMutexes.LoadOrStore(networkName, newMu)
+	return actual.(*sync.Mutex)
+}
+
+// lockNetwork acquires the mutex for a specific network.
+func (e *EgressIPController) lockNetwork(networkName string) {
+	mu := e.getNetworkMutex(networkName)
+	mu.Lock()
+}
+
+// unlockNetwork releases the mutex for a specific network.
+func (e *EgressIPController) unlockNetwork(networkName string) {
+	mu := e.getNetworkMutex(networkName)
+	mu.Unlock()
 }
 
 // main reconcile functions begin here
@@ -3533,8 +3560,8 @@ func createDefaultNoRerouteServicePolicies(nbClient libovsdbclient.Client, netwo
 // ensureRouterPoliciesForNetwork is the optimized version of batched ops
 // It batches all operations for a single network into one transaction
 func (e *EgressIPController) ensureRouterPoliciesForNetwork(ni util.NetInfo, node *corev1.Node) error {
-	e.nodeUpdateMutex.Lock()
-	defer e.nodeUpdateMutex.Unlock()
+	e.lockNetwork(ni.GetNetworkName())
+	defer e.unlockNetwork(ni.GetNetworkName())
 
 	subnetEntries := ni.Subnets()
 	subnets := util.GetAllClusterSubnetsFromEntries(subnetEntries)
@@ -3598,8 +3625,9 @@ func (e *EgressIPController) ensureRouterPoliciesForNetwork(ni util.NetInfo, nod
 // updateNodeNextHop updates the next hop IP for reroute policies on the node's logical router.
 // Only used during layer2 topology upgrade to change gwIP to the transit routerIP
 func (e *EgressIPController) updateNodeNextHop(ni util.NetInfo, node *corev1.Node) error {
-	e.nodeUpdateMutex.Lock()
-	defer e.nodeUpdateMutex.Unlock()
+	e.lockNetwork(ni.GetNetworkName())
+	defer e.unlockNetwork(ni.GetNetworkName())
+
 	transitRouterInfo, err := getTransitRouterInfo(ni, node)
 	if err != nil {
 		return err
@@ -3646,8 +3674,8 @@ func (e *EgressIPController) updateNodeNextHop(ni util.NetInfo, node *corev1.Nod
 }
 
 func (e *EgressIPController) ensureSwitchPoliciesForNode(ni util.NetInfo, nodeName string) error {
-	e.nodeUpdateMutex.Lock()
-	defer e.nodeUpdateMutex.Unlock()
+	e.lockNetwork(ni.GetNetworkName())
+	defer e.unlockNetwork(ni.GetNetworkName())
 	ops, err := e.ensureDefaultNoReRouteQosRulesForNode(ni, nodeName, nil)
 	if err != nil {
 		return fmt.Errorf("failed to ensure no reroute QoS rules for node %s and network %s: %v", nodeName, ni.GetNetworkName(), err)
@@ -3748,8 +3776,8 @@ func createDefaultReRouteQoSRuleOps(nbClient libovsdbclient.Client, addressSetFa
 }
 
 func (e *EgressIPController) ensureDefaultNoRerouteQoSRules(nodeName string) error {
-	e.nodeUpdateMutex.Lock()
-	defer e.nodeUpdateMutex.Unlock()
+	e.lockNetwork(types.DefaultNetworkName)
+	defer e.unlockNetwork(types.DefaultNetworkName)
 	defaultNetInfo := e.networkManager.GetNetwork(types.DefaultNetworkName)
 	var ops []ovsdb.Operation
 	ops, err := e.ensureDefaultNoReRouteQosRulesForNode(defaultNetInfo, nodeName, ops)
@@ -3760,6 +3788,8 @@ func (e *EgressIPController) ensureDefaultNoRerouteQoSRules(nodeName string) err
 		if network.GetNetworkName() == types.DefaultNetworkName {
 			return nil
 		}
+		e.lockNetwork(network.GetNetworkName())
+		defer e.unlockNetwork(network.GetNetworkName())
 		ops, err = e.ensureDefaultNoReRouteQosRulesForNode(network, nodeName, ops)
 		if err != nil {
 			return fmt.Errorf("failed to process network %s: %v", network.GetNetworkName(), err)
@@ -3848,9 +3878,6 @@ func (e *EgressIPController) ensureDefaultNoReRouteQosRulesForNode(ni util.NetIn
 }
 
 func (e *EgressIPController) ensureDefaultNoRerouteNodePolicies() error {
-	e.nodeUpdateMutex.Lock()
-	defer e.nodeUpdateMutex.Unlock()
-
 	nodeLister := listers.NewNodeLister(e.watchFactory.NodeInformer().GetIndexer())
 	clusterNodesAddressSets, err := ensureClusterNodeAddressSets(e.addressSetFactory, nodeLister, e.v4, e.v6)
 	if err != nil {
@@ -3858,6 +3885,9 @@ func (e *EgressIPController) ensureDefaultNoRerouteNodePolicies() error {
 	}
 
 	// ensure default network is processed
+	e.lockNetwork(types.DefaultNetworkName)
+	defer e.unlockNetwork(types.DefaultNetworkName)
+
 	defaultNetInfo := e.networkManager.GetNetwork(types.DefaultNetworkName)
 	err = ensureDefaultNoRerouteNodePolicies(e.nbClient, e.addressSetFactory, defaultNetInfo.GetNetworkName(), defaultNetInfo.GetNetworkScopedClusterRouterName(),
 		e.controllerName, clusterNodesAddressSets, e.v4, e.v6)
@@ -3871,10 +3901,14 @@ func (e *EgressIPController) ensureDefaultNoRerouteNodePolicies() error {
 		if network.GetNetworkName() == types.DefaultNetworkName {
 			return nil
 		}
+		e.lockNetwork(network.GetNetworkName())
+		defer e.unlockNetwork(network.GetNetworkName())
+
 		routerName, err := e.getTopologyScopedLocalZoneRouterName(network)
 		if err != nil {
 			return err
 		}
+
 		err = ensureDefaultNoRerouteNodePolicies(e.nbClient, e.addressSetFactory, network.GetNetworkName(), routerName,
 			e.controllerName, clusterNodesAddressSets, e.v4, e.v6)
 		if err != nil {
