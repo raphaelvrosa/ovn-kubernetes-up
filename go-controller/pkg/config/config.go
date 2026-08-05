@@ -554,8 +554,35 @@ type OVNKubernetesFeatureConfig struct {
 	// UDNDeletionGracePeriod specified in number of seconds to wait before garbage collecting a UDN. Applies
 	// only when Dynamic UDN Allocation is enabled.
 	UDNDeletionGracePeriod time.Duration `gcfg:"udn-deletion-grace-period"`
-	EnableUDNARPProxy      bool          `gcfg:"enable-udn-arp-proxy"`
+	EnableUDNARPProxy      UDNARPProxy   `gcfg:"enable-udn-arp-proxy"`
 	EnableUDNNDPProxy      bool          `gcfg:"enable-udn-ndp-proxy"`
+}
+
+// UDNARPProxy selects the ARP proxy mode for UDN gateway routers.
+type UDNARPProxy string
+
+const (
+	UDNARPProxyDisabled    UDNARPProxy = ""
+	UDNARPProxyMacBindings UDNARPProxy = "macbindings"
+	UDNARPProxyFlows       UDNARPProxy = "flows"
+)
+
+func (u *UDNARPProxy) Set(value string) error {
+	switch UDNARPProxy(value) {
+	case UDNARPProxyDisabled, UDNARPProxyMacBindings, UDNARPProxyFlows:
+		*u = UDNARPProxy(value)
+		return nil
+	default:
+		return fmt.Errorf("invalid UDN ARP proxy mode %q, must be one of: \"\", \"macbindings\", \"flows\"", value)
+	}
+}
+
+func (u *UDNARPProxy) String() string {
+	return string(*u)
+}
+
+func (u *UDNARPProxy) UnmarshalText(text []byte) error {
+	return u.Set(string(text))
 }
 
 // GatewayMode holds the node gateway mode
@@ -1399,12 +1426,12 @@ var OVNK8sFeatureFlags = []cli.Flag{
 		Destination: &cliConfig.OVNKubernetesFeature.UDNDeletionGracePeriod,
 		Value:       OVNKubernetesFeature.UDNDeletionGracePeriod,
 	},
-	&cli.BoolFlag{
+	&cli.GenericFlag{
 		Name: "enable-udn-arp-proxy",
-		Usage: "Enable IPv4 broadcast isolation and ARP proxy flows on br-ex. " +
+		Usage: "Set UDN ARP proxy mode: \"macbindings\" or \"flows\". " +
 			"Helps mitigate packet drops and high OVS CPU caused by ARP replies fan-out to UDNs.",
 		Destination: &cliConfig.OVNKubernetesFeature.EnableUDNARPProxy,
-		Value:       OVNKubernetesFeature.EnableUDNARPProxy,
+		Value:       &OVNKubernetesFeature.EnableUDNARPProxy,
 	},
 	&cli.BoolFlag{
 		Name: "enable-udn-ndp-proxy",

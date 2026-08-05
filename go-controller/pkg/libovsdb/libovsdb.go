@@ -160,6 +160,46 @@ func NewSBClientWithEndpoint(endpoint string, promRegistry prometheus.Registerer
 	return c, nil
 }
 
+// NewMACBindingSBClient creates a lightweight SB client that only monitors
+// MAC_Binding (LogicalPort, IP, MAC) and PortBinding (LogicalPort, Datapath)
+// tables. It is intended for the MAC binding controller (OKEP-6691) so the
+// main SB client's cache is not burdened with MAC_Binding rows.
+func NewMACBindingSBClient(stopCh <-chan struct{}) (client.Client, error) {
+	dbModel, err := sbdb.FullDatabaseModel()
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := newClient(config.OvnSouth.GetURL(), dbModel)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), config.Default.OVSDBTxnTimeout*2)
+	go func() {
+		<-stopCh
+		cancel()
+		c.Close()
+	}()
+
+	// ToDo: filter macbinding table by datapath UUID param
+	mb := sbdb.MACBinding{}
+	pb := sbdb.PortBinding{}
+	_, err = c.Monitor(ctx,
+		c.NewMonitor(
+			client.WithTable(&mb, &mb.LogicalPort, &mb.IP, &mb.MAC),
+			client.WithTable(&pb, &pb.LogicalPort, &pb.Datapath),
+		),
+	)
+	if err != nil {
+		cancel()
+		c.Close()
+		return nil, err
+	}
+
+	return c, nil
+}
+
 // NewNBClient creates a new OVN Northbound Database client connected to the
 // local OVN NB DB.
 func NewNBClient(stopCh <-chan struct{}) (client.Client, error) {

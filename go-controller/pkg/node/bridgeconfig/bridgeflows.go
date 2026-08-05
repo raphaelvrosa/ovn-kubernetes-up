@@ -810,9 +810,9 @@ func (b *BridgeConfiguration) commonFlows(hostSubnets []*net.IPNet) ([]string, e
 	if ofPortPhys != "" {
 		// table 0, we check to see if this dest mac is the shared mac, if so flood to all ports
 		actions := ""
-		for _, netConfig := range b.patchedNetConfigs() {
-			actions += "output:" + netConfig.OfPortPatch + ","
-		}
+		// for _, netConfig := range b.patchedNetConfigs() {
+		// 	actions += "output:" + netConfig.OfPortPatch + ","
+		// }
 
 		actions += "NORMAL"
 		dftFlows = append(dftFlows,

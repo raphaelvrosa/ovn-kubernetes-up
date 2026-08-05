@@ -38,10 +38,12 @@ import (
 	"github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/factory"
 	"github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/informer"
 	"github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/kube"
+	libovsdb "github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/libovsdb"
 	ovsops "github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/libovsdb/ops"
 	"github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/networkmanager"
 	"github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/node/controllers/egressip"
 	"github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/node/controllers/egressservice"
+	"github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/node/controllers/macbinding"
 	"github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/node/dpulease"
 	"github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/node/linkmanager"
 	"github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/node/managementport"
@@ -145,6 +147,8 @@ type DefaultNodeNetworkController struct {
 	udnHostIsolationManager *UDNHostIsolationManager
 
 	masqReconciler *masqueradeReconciler
+
+	macBindingController *macbinding.MACBindingController
 
 	nodeAddress net.IP
 	sbZone      string
@@ -952,6 +956,33 @@ func (nc *DefaultNodeNetworkController) Init(ctx context.Context) error {
 
 	nc.sbZone = sbZone
 
+	ipv4ARPProxy := config.OVNKubernetesFeature.EnableUDNARPProxy != config.UDNARPProxyDisabled && config.IPv4Mode
+	ipv4UseARPFlows := config.OVNKubernetesFeature.EnableUDNARPProxy == config.UDNARPProxyFlows && config.IPv4Mode
+	ipv6NDPProxy := config.OVNKubernetesFeature.EnableUDNNDPProxy && config.IPv6Mode
+	if ipv4ARPProxy || ipv6NDPProxy {
+		macBindingSBClient, err := libovsdb.NewMACBindingSBClient(nc.stopChan)
+		if err != nil {
+			return fmt.Errorf("failed to create MAC binding SB client: %w", err)
+		}
+
+		gw := nc.Gateway.(*gateway)
+		ofm := &macbinding.FlowManagerOps{
+			UpdateExBridgeFlowCacheEntryFn: gw.openflowManager.updateFlowCacheEntry,
+			DeleteExBridgeFlowsByKeyFn:     gw.openflowManager.deleteFlowsByKey,
+			RequestFlowSyncFn:              gw.openflowManager.requestFlowSync,
+		}
+		bridgeName := gw.openflowManager.getDefaultBridgeName()
+		nc.macBindingController = macbinding.NewMACBindingController(
+			macBindingSBClient,
+			nc.networkManager,
+			ofm,
+			nc.name,
+			bridgeName,
+			ipv4ARPProxy,
+			ipv4UseARPFlows,
+			ipv6NDPProxy,
+		)
+	}
 	return nil
 }
 
@@ -1020,6 +1051,16 @@ func (nc *DefaultNodeNetworkController) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start gateway: %w", err)
 	}
 	klog.Infof("Gateway and management port readiness took %v", time.Since(start))
+
+	if nc.macBindingController != nil {
+		nc.wg.Add(1)
+		go func() {
+			defer nc.wg.Done()
+			if err := nc.macBindingController.Run(nc.stopChan); err != nil {
+				klog.Errorf("MAC binding controller failed: %v", err)
+			}
+		}()
+	}
 
 	// Note(adrianc): DPU deployments are expected to support the new shared gateway changes, upgrade flow
 	// is not needed. Future upgrade flows will need to take DPUs into account.

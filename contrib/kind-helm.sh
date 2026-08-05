@@ -88,7 +88,7 @@ usage() {
     echo "-ikv | --install-kubevirt                     Install kubevirt"
     echo "-mne | --multi-network-enable                 Enable multi networks. DEFAULT: Disabled"
     echo "-nse | --network-segmentation-enable          Enable network segmentation. DEFAULT: Disabled"
-    echo "-uap | --udn-arp-proxy-enable                 Enable UDN ARP Proxy. DEFAULT: Disabled"
+    echo "-uap | --udn-arp-proxy-enable <mode>          UDN ARP Proxy mode: macbindings or flows. DEFAULT: Disabled"
     echo "-unp | --udn-ndp-proxy-enable                 Enable UDN NDP Proxy. DEFAULT: Disabled"
     echo "-nce | --network-connect-enable               Enable network connect (requires network segmentation). DEFAULT: Disabled"
     echo "-ue  | --uplink-enable                        Enable uplink (requires network segmentation). DEFAULT: Disabled"
@@ -198,7 +198,8 @@ parse_args() {
                                                   ;;
             -nse | --network-segmentation-enable) ENABLE_NETWORK_SEGMENTATION=true
                                                   ;;
-            -uap | --udn-arp-proxy-enable)        ENABLE_UDN_ARP_PROXY=true
+            -uap | --udn-arp-proxy-enable)        shift
+                                                  ENABLE_UDN_ARP_PROXY=$1
                                                   ;;
             -unp | --udn-ndp-proxy-enable)        ENABLE_UDN_NDP_PROXY=true
                                                   ;;
@@ -616,7 +617,7 @@ helm upgrade --install ovn-kubernetes . -f "${value_file}" ${extra_values_args} 
           --set global.enableMulticast=$(if [ "${OVN_MULTICAST_ENABLE}" == "true" ]; then echo "true"; else echo "false"; fi) \
           --set global.enableMultiNetwork=$(if [ "${ENABLE_MULTI_NET}" == "true" ]; then echo "true"; else echo "false"; fi) \
           --set global.enableNetworkSegmentation=$(if [ "${ENABLE_NETWORK_SEGMENTATION}" == "true" ]; then echo "true"; else echo "false"; fi) \
-          --set global.enableUDNARPProxy=$(if [ "${ENABLE_UDN_ARP_PROXY}" == "true" ]; then echo "true"; else echo "false"; fi) \
+          --set global.enableUDNARPProxy="${ENABLE_UDN_ARP_PROXY}" \
           --set global.enableUDNNDPProxy=$(if [ "${ENABLE_UDN_NDP_PROXY}" == "true" ]; then echo "true"; else echo "false"; fi) \
           --set global.enableNetworkConnect=$(if [ "${ENABLE_NETWORK_CONNECT}" == "true" ]; then echo "true"; else echo "false"; fi) \
           --set global.enableUplink=$(if [ "${ENABLE_UPLINK}" == "true" ]; then echo "true"; else echo "false"; fi) \
