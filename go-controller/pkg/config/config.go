@@ -554,6 +554,8 @@ type OVNKubernetesFeatureConfig struct {
 	// UDNDeletionGracePeriod specified in number of seconds to wait before garbage collecting a UDN. Applies
 	// only when Dynamic UDN Allocation is enabled.
 	UDNDeletionGracePeriod time.Duration `gcfg:"udn-deletion-grace-period"`
+	UDNARPProxyEnable      bool          `gcfg:"udn-arp-proxy-enable"`
+	UDNNDPProxyEnable      bool          `gcfg:"udn-ndp-proxy-enable"`
 }
 
 // GatewayMode holds the node gateway mode
@@ -1396,6 +1398,20 @@ var OVNK8sFeatureFlags = []cli.Flag{
 			"feature is used.",
 		Destination: &cliConfig.OVNKubernetesFeature.UDNDeletionGracePeriod,
 		Value:       OVNKubernetesFeature.UDNDeletionGracePeriod,
+	},
+	&cli.BoolFlag{
+		Name: "udn-arp-proxy-enable",
+		Usage: "Enable UDN ARP proxy. " +
+			"Helps mitigate packet drops and high OVS CPU caused by ARP replies fan-out to UDNs.",
+		Destination: &cliConfig.OVNKubernetesFeature.UDNARPProxyEnable,
+		Value:       OVNKubernetesFeature.UDNARPProxyEnable,
+	},
+	&cli.BoolFlag{
+		Name: "udn-ndp-proxy-enable",
+		Usage: "Enable UDN NDP proxy. " +
+			"Helps mitigate packet drops and high OVS CPU caused by network advertisements fan-out to UDNs.",
+		Destination: &cliConfig.OVNKubernetesFeature.UDNNDPProxyEnable,
+		Value:       OVNKubernetesFeature.UDNNDPProxyEnable,
 	},
 }
 

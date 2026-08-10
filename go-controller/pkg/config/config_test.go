@@ -244,6 +244,8 @@ advertised-udn-isolation-mode=strict
 enable-multi-external-gateway=false
 enable-admin-network-policy=false
 enable-persistent-ips=false
+udn-arp-proxy-enable=false
+udn-ndp-proxy-enable=false
 
 [clustermanager]
 v4-transit-subnet=100.89.0.0/16
@@ -361,6 +363,8 @@ var _ = Describe("Config Operations", func() {
 			gomega.Expect(OVNKubernetesFeature.EnableAdminNetworkPolicy).To(gomega.BeFalse())
 			gomega.Expect(OVNKubernetesFeature.EnablePersistentIPs).To(gomega.BeFalse())
 			gomega.Expect(OVNKubernetesFeature.AdvertisedUDNIsolationMode).To(gomega.Equal(AdvertisedUDNIsolationModeStrict))
+			gomega.Expect(OVNKubernetesFeature.UDNARPProxyEnable).To(gomega.BeFalse())
+			gomega.Expect(OVNKubernetesFeature.UDNNDPProxyEnable).To(gomega.BeFalse())
 
 			gomega.Expect(OvnNorth.GetURL()).To(gomega.Equal("unix:/var/run/ovn/ovnnb_db.sock"))
 			gomega.Expect(OvnSouth.GetURL()).To(gomega.Equal("unix:/var/run/ovn/ovnsb_db.sock"))
@@ -508,6 +512,8 @@ routing-table-id-start=2002
 			"enable-multi-external-gateway=true",
 			"enable-admin-network-policy=true",
 			"enable-persistent-ips=true",
+			"udn-arp-proxy-enable=true",
+			"udn-ndp-proxy-enable=true",
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
@@ -602,6 +608,8 @@ routing-table-id-start=2002
 			gomega.Expect(OVNKubernetesFeature.EnableMultiExternalGateway).To(gomega.BeTrue())
 			gomega.Expect(OVNKubernetesFeature.EnableAdminNetworkPolicy).To(gomega.BeTrue())
 			gomega.Expect(OVNKubernetesFeature.EnablePersistentIPs).To(gomega.BeTrue())
+			gomega.Expect(OVNKubernetesFeature.UDNARPProxyEnable).To(gomega.BeTrue())
+			gomega.Expect(OVNKubernetesFeature.UDNNDPProxyEnable).To(gomega.BeTrue())
 			gomega.Expect(HybridOverlay.ClusterSubnets).To(gomega.Equal([]CIDRNetworkEntry{
 				{ovntest.MustParseIPNet("11.132.0.0/14"), 23},
 			}))
