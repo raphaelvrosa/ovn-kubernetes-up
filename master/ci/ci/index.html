@@ -1352,6 +1352,8 @@ ovn-kubernetes/.github/workflows/test.yml.">
       
         
       
+        
+      
     
     
     
@@ -1827,6 +1829,34 @@ ovn-kubernetes/.github/workflows/test.yml.">
     
   
     Release Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/maintenance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintenance Guide
   
 
     
@@ -2329,6 +2359,8 @@ ovn-kubernetes/.github/workflows/test.yml.">
       
         
       
+        
+      
     
     
     
@@ -2480,6 +2512,34 @@ ovn-kubernetes/.github/workflows/test.yml.">
     
   
     Dynamic UDN Node Allocation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/user-defined-networks/dhcp-ipam-localnet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DHCP IPAM for Localnet Networks
   
 
     
@@ -4038,6 +4098,8 @@ ovn-kubernetes/.github/workflows/test.yml.">
       
         
       
+        
+      
     
     
     
@@ -4510,6 +4572,34 @@ ovn-kubernetes/.github/workflows/test.yml.">
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../okeps/okep-5212-ovnobserv-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OVN Observability API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -4528,10 +4618,6 @@ ovn-kubernetes/.github/workflows/test.yml.">
       
         
           
-        
-      
-        
-      
         
       
         
@@ -4594,65 +4680,27 @@ ovn-kubernetes/.github/workflows/test.yml.">
   
   
   
-    <li class="md-nav__item">
-      <a href="../../blog/dpu-acceleration/" class="md-nav__link">
+    
+    
+      
         
-  
-  
-  <span class="md-ellipsis">
+      
     
-  
-    Accelerating and Securing Kubernetes Networking with DPUs
-  
-
     
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_2">
+        
+          
+          <label class="md-nav__link" for="__nav_9_2" id="__nav_9_2_label" tabindex="0">
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/netobserv/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Debugging NetworkPolicies with NetObserv
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
-        
   
   
   <span class="md-ellipsis">
@@ -4666,7 +4714,53 @@ ovn-kubernetes/.github/workflows/test.yml.">
   
   
 
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/archive/2026/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2026
+  
+
+    
+  </span>
+  
+  
+
       </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -4883,7 +4977,6 @@ with other tests and they are disabled when running <code>make control-plane</co
 Instead, they must explicitly be requested with <code>make -C test control-plane WHAT="Node IP address migration"</code>.</p>
 <h3 id="github-ci-integration-through-github-actions-matrix">Github CI integration through Github Actions Matrix<a class="headerlink" href="#github-ci-integration-through-github-actions-matrix" title="Permanent link">¶</a></h3>
 <p>Each of these shards and control-plane tests can then be run in a <a href="https://docs.github.com/en/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix">Github Actions matrix</a> of:
-* HA setup (3 masters and 0 workers) and a non-HA setup (1 master and 2 workers)
 * Local Gateway Mode and Shared Gateway Mode. See:
 <a href="https://github.com/ovn-kubernetes/ovn-kubernetes/blob/master/docs/design/shared_gw_dgp.md">Enable Node-Local Services Access in Shared Gateway Mode</a>
 * IPv4 Only, IPv6 Only and Dualstack

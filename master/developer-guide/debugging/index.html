@@ -1346,6 +1346,8 @@
       
         
       
+        
+      
     
     
     
@@ -1754,6 +1756,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#automated-stack-trace-extraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automated Stack Trace Extraction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#debugging-with-delve" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1854,6 +1867,34 @@
     
   
     Release Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../maintenance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintenance Guide
   
 
     
@@ -2356,6 +2397,8 @@
       
         
       
+        
+      
     
     
     
@@ -2507,6 +2550,34 @@
     
   
     Dynamic UDN Node Allocation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/user-defined-networks/dhcp-ipam-localnet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DHCP IPAM for Localnet Networks
   
 
     
@@ -4065,6 +4136,8 @@
       
         
       
+        
+      
     
     
     
@@ -4537,6 +4610,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../okeps/okep-5212-ovnobserv-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OVN Observability API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -4555,10 +4656,6 @@
       
         
           
-        
-      
-        
-      
         
       
         
@@ -4621,65 +4718,27 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="../../blog/dpu-acceleration/" class="md-nav__link">
+    
+    
+      
         
-  
-  
-  <span class="md-ellipsis">
+      
     
-  
-    Accelerating and Securing Kubernetes Networking with DPUs
-  
-
     
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_2">
+        
+          
+          <label class="md-nav__link" for="__nav_9_2" id="__nav_9_2_label" tabindex="0">
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/netobserv/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Debugging NetworkPolicies with NetObserv
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
-        
   
   
   <span class="md-ellipsis">
@@ -4693,7 +4752,53 @@
   
   
 
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/archive/2026/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2026
+  
+
+    
+  </span>
+  
+  
+
       </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -4760,6 +4865,17 @@
     <span class="md-ellipsis">
       
         Downloading Artifacts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#automated-stack-trace-extraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automated Stack Trace Extraction
       
     </span>
   </a>
@@ -4889,7 +5005,9 @@ what went wrong.</p>
 </li>
 <li>
 <p><strong>Artifacts are uploaded</strong> to GitHub Actions and can be downloaded from the job's
-   artifacts section.</p>
+   artifacts section. Failed E2E lanes also upload their coredumps for an isolated
+   post-processing job. That job extracts every available trace, prints them in one
+   job log, and uploads one combined trace artifact for the PR comment workflow.</p>
 </li>
 </ol>
 <h3 id="downloading-artifacts">Downloading Artifacts<a class="headerlink" href="#downloading-artifacts" title="Permanent link">¶</a></h3>
@@ -4900,6 +5018,21 @@ job page. Extract it to find:</p>
 └── binaries/
     └── ovnkube                         # Matching binary
 </code></pre></div>
+<h3 id="automated-stack-trace-extraction">Automated Stack Trace Extraction<a class="headerlink" href="#automated-stack-trace-extraction" title="Permanent link">¶</a></h3>
+<p>The <code>contrib/coredump/extract-stacktraces.sh</code> script accepts either a tar archive
+of exported KIND logs or an extracted <code>coredumps</code> directory and writes stack
+traces to a local directory:</p>
+<div class="highlight"><pre><span></span><code>./contrib/coredump/extract-stacktraces.sh<span class="w"> </span>kind-logs.tar.gz<span class="w"> </span>stacktraces
+./contrib/coredump/extract-stacktraces.sh<span class="w"> </span>kind-logs/coredumps<span class="w"> </span>stacktraces
+</code></pre></div>
+<p>The script supports three image families: Fedora <code>ovn-daemonset</code> C binaries,
+Go binaries, and FRR daemons from the Alpine-based <code>quay.io/frrouting/frr</code>
+image. It selects GDB or Delve from the collected binary and image metadata,
+then batches coredumps that can share one debugger container. Fedora OVN traces
+install the matching runtime and debuginfo RPMs from Koji; FRR traces use the
+exact recorded image and its bundled split debug files. Docker and network
+access are required. Set <code>OCI_BIN</code> to use another Docker-compatible container
+runtime, or <code>GO_DEBUG_IMAGE</code> to override the Fedora image that provides Delve.</p>
 <h3 id="debugging-with-delve">Debugging with Delve<a class="headerlink" href="#debugging-with-delve" title="Permanent link">¶</a></h3>
 <p>Use the <a href="https://github.com/go-delve/delve">Delve</a> debugger for post-mortem analysis.</p>
 <ol>

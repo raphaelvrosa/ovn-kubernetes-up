@@ -11,7 +11,7 @@
         <link rel="prev" href="../debugging/">
       
       
-        <link rel="next" href="../../api-reference/">
+        <link rel="next" href="../maintenance/">
       
       
         
@@ -1344,6 +1344,8 @@
       
         
       
+        
+      
     
     
     
@@ -1787,6 +1789,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Release Process">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#release-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release Notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1815,6 +1834,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../maintenance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintenance Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -2309,6 +2356,8 @@
       
         
       
+        
+      
     
     
     
@@ -2460,6 +2509,34 @@
     
   
     Dynamic UDN Node Allocation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/user-defined-networks/dhcp-ipam-localnet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DHCP IPAM for Localnet Networks
   
 
     
@@ -4018,6 +4095,8 @@
       
         
       
+        
+      
     
     
     
@@ -4490,6 +4569,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../okeps/okep-5212-ovnobserv-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OVN Observability API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -4508,10 +4615,6 @@
       
         
           
-        
-      
-        
-      
         
       
         
@@ -4574,65 +4677,27 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="../../blog/dpu-acceleration/" class="md-nav__link">
+    
+    
+      
         
-  
-  
-  <span class="md-ellipsis">
+      
     
-  
-    Accelerating and Securing Kubernetes Networking with DPUs
-  
-
     
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_2">
+        
+          
+          <label class="md-nav__link" for="__nav_9_2" id="__nav_9_2_label" tabindex="0">
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/netobserv/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Debugging NetworkPolicies with NetObserv
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
-        
   
   
   <span class="md-ellipsis">
@@ -4646,7 +4711,53 @@
   
   
 
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/archive/2026/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2026
+  
+
+    
+  </span>
+  
+  
+
       </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -4727,6 +4838,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Release Process">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#release-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release Notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -4791,8 +4919,13 @@
 </ul>
 <h2 id="release-planning">Release Planning<a class="headerlink" href="#release-planning" title="Permanent link">¶</a></h2>
 <ul>
-<li>OVN-Kubernetes projects uses <a href="https://github.com/ovn-kubernetes/ovn-kubernetes/milestones">milestones</a> to track our release planning</li>
-<li>All PRs and Issues must be tagged with the correct milestone so that it get's included in the release planning</li>
+<li>OVN-Kubernetes uses <a href="https://github.com/ovn-kubernetes/ovn-kubernetes/milestones">milestones</a> to track release planning</li>
+<li>All feature PRs and OKEPs <strong>must</strong> be tagged with the milestone corresponding to their target release before merging,
+  so that they are included in release planning and release notes generation</li>
+<li>Bug fix PRs should also be tagged with the milestone of the release they target</li>
+<li>If you are unsure which release a feature or fix will land in, tag it under the
+  <a href="https://github.com/ovn-kubernetes/ovn-kubernetes/milestone/9">Unplanned Backlog</a> milestone — a maintainer
+  will triage and assign it to the correct release</li>
 <li>Please check our <a href="https://github.com/orgs/ovn-kubernetes/projects/5/views/4">roadmap</a> for more details on our release tracking process</li>
 </ul>
 <h2 id="release-cadence">Release Cadence<a class="headerlink" href="#release-cadence" title="Permanent link">¶</a></h2>
@@ -4815,6 +4948,23 @@
 <li>Branch will be cut on the day of release once the release PR merges.</li>
 <li>CI-CD for the release branch will be added to the <a href="https://github.com/ovn-kubernetes/ovn-kubernetes/blob/master/.github/workflows/test.yml#L6">GitHub Workflow</a>.</li>
 </ul>
+<h3 id="release-notes">Release Notes<a class="headerlink" href="#release-notes" title="Permanent link">¶</a></h3>
+<ul>
+<li>Every PR must include a <code>release-note</code> fenced code block in its description (enforced by CodeRabbit).
+  The block must contain either a short user-facing description of the change or the single word <code>NONE</code>
+  if the PR has no user-facing impact (e.g. tests, refactors, CI-only changes):
+  <div class="highlight"><pre><span></span><code>```release-note
+Added support for X feature in Y component.
+```
+</code></pre></div>
+  or for non-user-facing changes:
+  <div class="highlight"><pre><span></span><code>```release-note
+NONE
+```
+</code></pre></div></li>
+<li>Release notes are generated from the <code>release-note</code> blocks of all PRs merged into a release. Any PR with
+  a meaningful (non-<code>NONE</code>) <code>release-note</code> block will be included in the release notes.</li>
+</ul>
 <h2 id="backport-request">BackPort Request<a class="headerlink" href="#backport-request" title="Permanent link">¶</a></h2>
 <ul>
 <li>If a PR needs to be backported to an older release that should be requested
@@ -4825,8 +4975,9 @@
 <ul>
 <li><a href="https://github.com/ovn-kubernetes/ovn-kubernetes/tree/release-1.0">v1.0.0</a> - <a href="https://github.com/ovn-kubernetes/ovn-kubernetes/releases/tag/v1.0.0">release-notes</a> - not maintained anymore.</li>
 <li><a href="https://github.com/ovn-kubernetes/ovn-kubernetes/tree/release-1.1">v1.1.0</a> - <a href="https://github.com/ovn-kubernetes/ovn-kubernetes/releases/tag/v1.1.0">release-notes</a> - not maintained anymore.</li>
-<li><a href="https://github.com/ovn-kubernetes/ovn-kubernetes/tree/release-1.2">v1.2.0</a> - <a href="https://github.com/ovn-kubernetes/ovn-kubernetes/releases/tag/v1.2.0">release-notes</a> - actively maintained</li>
+<li><a href="https://github.com/ovn-kubernetes/ovn-kubernetes/tree/release-1.2">v1.2.0</a> - <a href="https://github.com/ovn-kubernetes/ovn-kubernetes/releases/tag/v1.2.0">release-notes</a> - not maintained anymore.</li>
 <li><a href="https://github.com/ovn-kubernetes/ovn-kubernetes/tree/release-1.3">v1.3.0</a> - <a href="https://github.com/ovn-kubernetes/ovn-kubernetes/releases/tag/v1.3.0">release-notes</a> - actively maintained</li>
+<li><a href="https://github.com/ovn-kubernetes/ovn-kubernetes/tree/release-1.4">v1.4.0</a> - <a href="https://github.com/ovn-kubernetes/ovn-kubernetes/releases/tag/v1.4.0">release-notes</a> - actively maintained</li>
 </ul>
 
 

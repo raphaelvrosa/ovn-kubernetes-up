@@ -739,6 +739,18 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../developer-guide/maintenance/">
+<span class="md-ellipsis">
+    
+  
+    Maintenance Guide
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
@@ -988,6 +1000,18 @@
     
   
     Dynamic UDN Node Allocation
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../user-defined-networks/dhcp-ipam-localnet/">
+<span class="md-ellipsis">
+    
+  
+    DHCP IPAM for Localnet Networks
   
 
     
@@ -2060,6 +2084,18 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../okeps/okep-5212-ovnobserv-api/">
+<span class="md-ellipsis">
+    
+  
+    OVN Observability API
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
@@ -2090,32 +2126,9 @@
 
           </label>
 <ul class="md-nav__list" data-md-scrollfix="">
-<li class="md-nav__item">
-<a class="md-nav__link" href="../../../blog/dpu-acceleration/">
-<span class="md-ellipsis">
-    
-  
-    Accelerating and Securing Kubernetes Networking with DPUs
-  
-
-    
-  </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="../../../blog/netobserv/">
-<span class="md-ellipsis">
-    
-  
-    Debugging NetworkPolicies with NetObserv
-  
-
-    
-  </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="../../..">
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_9_2" type="checkbox">
+<label class="md-nav__link" for="__nav_9_2" id="__nav_9_2_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -2124,7 +2137,32 @@
 
     
   </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_9_2_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_9_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../blog/archive/2026/">
+<span class="md-ellipsis">
+    
+  
+    2026
+  
+
+    
+  </span>
 </a>
+</li>
+</ul>
+</nav>
 </li>
 </ul>
 </nav>
@@ -2472,7 +2510,7 @@ network.</p>
 <span class="w">            </span><span class="no">"name": "tenantblue",</span>
 <span class="w">            </span><span class="no">"type": "ovn-k8s-cni-overlay",</span>
 <span class="w">            </span><span class="no">"topology":"layer3",</span>
-<span class="w">            </span><span class="no">"subnets": "10.128.0.0/16/24",</span>
+<span class="w">            </span><span class="no">"subnets": "10.128.0.0/16/24,10.129.0.0/16/24",</span>
 <span class="w">            </span><span class="no">"mtu": 1300,</span>
 <span class="w">            </span><span class="no">"netAttachDefName": "ns1/l3-network"</span>
 <span class="w">    </span><span class="no">}</span>
@@ -2482,17 +2520,21 @@ network.</p>
 <li><code>name</code> (string, required): the name of the network. This attribute is <strong>not</strong> namespaced.</li>
 <li><code>type</code> (string, required): "ovn-k8s-cni-overlay".</li>
 <li><code>topology</code> (string, required): "layer3".</li>
-<li><code>subnets</code> (string, required): a comma separated list of subnets. When multiple subnets
-  are provided, the user will get an IP from each subnet.</li>
+<li><code>subnets</code> (string, required): a comma-separated list of cluster subnets from
+  which per-node subnets are allocated. Each node receives one subnet per IP
+  family.</li>
 <li><code>mtu</code> (integer, optional): explicitly set MTU to the specified value. Defaults to the value chosen by the kernel.</li>
 <li><code>netAttachDefName</code> (string, required): must match <code>&lt;namespace&gt;/&lt;net-attach-def name&gt;</code>
   of the surrounding object.</li>
 </ul>
 <blockquote>
 <p>[!NOTE]
-the <code>subnets</code> attribute indicates both the subnet across the cluster, and per node.
-  The example above means you have a /16 subnet for the network, but each <strong>node</strong> has
-  a /24 subnet.</p>
+The <code>subnets</code> attribute defines the cluster subnet allocation pool for each IP
+  family. Each node receives one subnet per IP family from that pool.
+  In the example above, the IPv4 pool consists of two <code>/16</code> cluster subnets,
+  each divided into <code>/24</code> per-node subnets. Cluster subnets must not overlap,
+  and all subnets in the same IP family must use the same per-node subnet
+  prefix length.</p>
 <p>[!NOTE]
 routed - layer3 - topology networks <strong>only</strong> allow for east/west traffic.</p>
 </blockquote>

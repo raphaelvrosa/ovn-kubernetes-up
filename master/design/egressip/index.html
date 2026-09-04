@@ -3,17 +3,10 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Observability is a key part of any system, and Kubernetes networking is no exception.
-But even if you see WHAT happens in your network, you still don’t know WHY it happens. 
-Especially if you have a number of network policies in the cluster, it is always difficult to tell why exactly 
-a given connection is allowed or denied.">
       
       
+        <link rel="canonical" href="https://www.ovn.org/ovn-kubernetes/master/design/egressip/">
       
-        <link rel="canonical" href="https://www.ovn.org/ovn-kubernetes/master/blog/netobserv/">
-      
-      
-        <link rel="prev" href="../dpu-acceleration/">
       
       
       
@@ -25,7 +18,7 @@ a given connection is allowed or denied.">
     
     
       
-        <title>Debugging NetworkPolicies with NetObserv - OVN-Kubernetes</title>
+        <title>EgressIP - OVN-Kubernetes</title>
       
     
     
@@ -88,7 +81,7 @@ a given connection is allowed or denied.">
     <div data-md-component="skip">
       
         
-        <a href="#debugging-networkpolicies-with-netobserv" class="md-skip">
+        <a href="#egressip" class="md-skip">
           Skip to content
         </a>
       
@@ -127,7 +120,7 @@ a given connection is allowed or denied.">
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Debugging NetworkPolicies with NetObserv
+              EgressIP
             
           </span>
         </div>
@@ -406,13 +399,11 @@ a given connection is allowed or denied.">
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../blog/" class="md-tabs__link">
           
   
   
@@ -574,7 +565,7 @@ a given connection is allowed or denied.">
   
   
     <li class="md-nav__item">
-      <a href="../../design/architecture/" class="md-nav__link">
+      <a href="../architecture/" class="md-nav__link">
         
   
   
@@ -602,7 +593,7 @@ a given connection is allowed or denied.">
   
   
     <li class="md-nav__item">
-      <a href="../../design/topology/" class="md-nav__link">
+      <a href="../topology/" class="md-nav__link">
         
   
   
@@ -630,7 +621,7 @@ a given connection is allowed or denied.">
   
   
     <li class="md-nav__item">
-      <a href="../../design/gateway-modes/" class="md-nav__link">
+      <a href="../gateway-modes/" class="md-nav__link">
         
   
   
@@ -658,7 +649,7 @@ a given connection is allowed or denied.">
   
   
     <li class="md-nav__item">
-      <a href="../../design/traffic-flows/" class="md-nav__link">
+      <a href="../traffic-flows/" class="md-nav__link">
         
   
   
@@ -686,7 +677,7 @@ a given connection is allowed or denied.">
   
   
     <li class="md-nav__item">
-      <a href="../../design/pod-creation-workflow/" class="md-nav__link">
+      <a href="../pod-creation-workflow/" class="md-nav__link">
         
   
   
@@ -714,7 +705,7 @@ a given connection is allowed or denied.">
   
   
     <li class="md-nav__item">
-      <a href="../../design/service-creation-workflow/" class="md-nav__link">
+      <a href="../service-creation-workflow/" class="md-nav__link">
         
   
   
@@ -742,7 +733,7 @@ a given connection is allowed or denied.">
   
   
     <li class="md-nav__item">
-      <a href="../../design/service-traffic-policy/" class="md-nav__link">
+      <a href="../service-traffic-policy/" class="md-nav__link">
         
   
   
@@ -770,7 +761,7 @@ a given connection is allowed or denied.">
   
   
     <li class="md-nav__item">
-      <a href="../../design/host-to-node-port-hairpin-trafficflow/" class="md-nav__link">
+      <a href="../host-to-node-port-hairpin-trafficflow/" class="md-nav__link">
         
   
   
@@ -798,7 +789,7 @@ a given connection is allowed or denied.">
   
   
     <li class="md-nav__item">
-      <a href="../../design/external-ip-and-loadbalancer-ingress/" class="md-nav__link">
+      <a href="../external-ip-and-loadbalancer-ingress/" class="md-nav__link">
         
   
   
@@ -826,7 +817,7 @@ a given connection is allowed or denied.">
   
   
     <li class="md-nav__item">
-      <a href="../../design/ovn-kubernetes-subnets/" class="md-nav__link">
+      <a href="../ovn-kubernetes-subnets/" class="md-nav__link">
         
   
   
@@ -854,7 +845,7 @@ a given connection is allowed or denied.">
   
   
     <li class="md-nav__item">
-      <a href="../../design/bridge-flows/" class="md-nav__link">
+      <a href="../bridge-flows/" class="md-nav__link">
         
   
   
@@ -882,7 +873,7 @@ a given connection is allowed or denied.">
   
   
     <li class="md-nav__item">
-      <a href="../../design/masquerade-ips/" class="md-nav__link">
+      <a href="../masquerade-ips/" class="md-nav__link">
         
   
   
@@ -1345,6 +1336,8 @@ a given connection is allowed or denied.">
       
         
       
+        
+      
     
     
     
@@ -1692,6 +1685,34 @@ a given connection is allowed or denied.">
     
   
     Release Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/maintenance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintenance Guide
   
 
     
@@ -2194,6 +2215,8 @@ a given connection is allowed or denied.">
       
         
       
+        
+      
     
     
     
@@ -2345,6 +2368,34 @@ a given connection is allowed or denied.">
     
   
     Dynamic UDN Node Allocation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/user-defined-networks/dhcp-ipam-localnet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DHCP IPAM for Localnet Networks
   
 
     
@@ -3903,6 +3954,8 @@ a given connection is allowed or denied.">
       
         
       
+        
+      
     
     
     
@@ -4375,6 +4428,34 @@ a given connection is allowed or denied.">
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../okeps/okep-5212-ovnobserv-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OVN Observability API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -4386,8 +4467,6 @@ a given connection is allowed or denied.">
       
   
   
-    
-  
   
   
     
@@ -4399,29 +4478,22 @@ a given connection is allowed or denied.">
       
         
       
-        
-      
-        
-      
     
     
     
       
-        
-        
-      
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" checked="">
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9">
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../" class="md-nav__link ">
+            <a href="../../blog/" class="md-nav__link ">
               
   
   
@@ -4439,13 +4511,13 @@ a given connection is allowed or denied.">
             </a>
             
               
-              <label class="md-nav__link " for="__nav_9" id="__nav_9_label" tabindex="">
+              <label class="md-nav__link " for="__nav_9" id="__nav_9_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
@@ -4464,134 +4536,27 @@ a given connection is allowed or denied.">
   
   
   
-    <li class="md-nav__item">
-      <a href="../dpu-acceleration/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
     
-  
-    Accelerating and Securing Kubernetes Networking with DPUs
-  
-
     
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-    
-  
-  
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
       
         
       
+    
+    
+    
       
-        <label class="md-nav__link md-nav__link--active" for="__toc">
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_2">
+        
           
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Debugging NetworkPolicies with NetObserv
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Debugging NetworkPolicies with NetObserv
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
-      
-        <li class="md-nav__item">
-  <a href="#install" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Install
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#workload" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Workload
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
-    </li>
-  
-
-              
+          <label class="md-nav__link" for="__nav_9_2" id="__nav_9_2_label" tabindex="0">
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
-        
   
   
   <span class="md-ellipsis">
@@ -4605,7 +4570,53 @@ a given connection is allowed or denied.">
   
   
 
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/archive/2026/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2026
+  
+
+    
+  </span>
+  
+  
+
       </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -4645,10 +4656,10 @@ a given connection is allowed or denied.">
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
-  <a href="#install" class="md-nav__link">
+  <a href="#introduction" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Install
+        Introduction
       
     </span>
   </a>
@@ -4656,13 +4667,102 @@ a given connection is allowed or denied.">
 </li>
       
         <li class="md-nav__item">
-  <a href="#workload" class="md-nav__link">
+  <a href="#multiple-mac-issue-during-egressip-failover-garp-handling" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Workload
+        Multiple MAC Issue During EgressIP Failover (GARP Handling)
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Multiple MAC Issue During EgressIP Failover (GARP Handling)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#solution-1-garp-drop-flows-on-the-bridge-startup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Solution 1: GARP Drop Flows on the Bridge (Startup)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#solution-2-nftables-arpndp-blocking-during-shutdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Solution 2: nftables ARP/NDP Blocking During Shutdown
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Solution 2: nftables ARP/NDP Blocking During Shutdown">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-nftables-and-the-netdev-family" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why nftables and the netdev Family
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shutdown-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shutdown Sequence
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#startup-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Startup Cleanup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ungraceful-shutdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ungraceful Shutdown
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#combined-protection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Combined Protection
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -4686,346 +4786,198 @@ a given connection is allowed or denied.">
   
 
 
-<h1 id="debugging-networkpolicies-with-netobserv">Debugging NetworkPolicies with NetObserv<a class="headerlink" href="#debugging-networkpolicies-with-netobserv" title="Permanent link">¶</a></h1>
-<p>Observability is a key part of any system, and Kubernetes networking is no exception.
-But even if you see WHAT happens in your network, you still don’t know WHY it happens. 
-Especially if you have a number of network policies in the cluster, it is always difficult to tell why exactly 
-a given connection is allowed or denied.</p>
-<p>To solve this problem, OVN-Kubernetes has introduced a new observability feature together with the NetObserv project
-that adds explicit communication between observability and networking.
-This post will walk you through the installation steps and some examples of how to use it to understand the behavior of your network policies.
-See feature guide for more information on limitations/requirements <a href="../../observability/ovn-observability/">OVN observability</a>.</p>
-<h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">¶</a></h2>
+<h1 id="egressip">EgressIP<a class="headerlink" href="#egressip" title="Permanent link">¶</a></h1>
+<h2 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">¶</a></h2>
+<p>EgressIP provides a mechanism for Kubernetes pods to use a specific, predictable
+source IP address for traffic leaving the cluster, instead of the default node
+IP. This is essential in environments where external firewalls, access control
+lists, or audit systems identify traffic by source IP. Without EgressIP, a pod's
+egress traffic is SNATed to the node IP, which changes whenever the pod is
+rescheduled to a different node.</p>
+<p>There are two flavors of EgressIP based on the network the egress IP belongs to:</p>
 <ul>
-<li>Run kind cluster with <a href="../../observability/ovn-observability/">OVN observability</a> feature enabled</li>
-<li>Install NetObserv operator in Standalone mode following the <a href="https://github.com/netobserv/netobserv-operator/tree/main?tab=readme-ov-file#getting-started">README guide</a></li>
-<li>Some tweaks are required to the suggested flowCollector configuration 
-Enable NetworkEvents to see OVN observability samples in NetObserv like so:
-<div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">agent</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">ebpf</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">privileged</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">      </span><span class="nt">features</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NetworkEvents</span>
-</code></pre></div>
-By default sampling rate is set to 50, which means that 1 in 50 packets will be sampled.
-This is required to avoid overwhelming the system with samples, but that also means that a lot
-of traffic will not be sampled. For the demo purposes, we can set the sampling rate to 1, which means that all packets will be sampled.
-<div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">agent</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">ebpf</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">sampling</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
-</code></pre></div>
-Merging all the changes together with the current version of README from the netobserv-operator repo, we get the following configuration
-<div class="highlight"><pre><span></span><code>cat<span class="w"> </span><span class="s">&lt;&lt;EOF | kubectl apply -f -</span>
-<span class="s">apiVersion: flows.netobserv.io/v1beta2</span>
-<span class="s">kind: FlowCollector</span>
-<span class="s">metadata:</span>
-<span class="s">  name: cluster</span>
-<span class="s">spec:</span>
-<span class="s">  namespace: netobserv</span>
-<span class="s">  agent:</span>
-<span class="s">    ebpf:</span>
-<span class="s">      privileged: true</span>
-<span class="s">      features:</span>
-<span class="s">      - NetworkEvents</span>
-<span class="s">      sampling: 1</span>
-<span class="s">  consolePlugin:</span>
-<span class="s">    standalone: true</span>
-<span class="s">  processor:</span>
-<span class="s">    advanced:</span>
-<span class="s">      env:</span>
-<span class="s">        SERVER_NOTLS: "true"</span>
-<span class="s">  loki:</span>
-<span class="s">    mode: Monolithic</span>
-<span class="s">    monolithic:</span>
-<span class="s">      url: 'http://my-netobserv-loki.netobserv.svc.cluster.local.:3100/'</span>
-<span class="s">  prometheus:</span>
-<span class="s">    querier:</span>
-<span class="s">      mode: Manual</span>
-<span class="s">      manual:</span>
-<span class="s">        url: http://my-netobserv-kube-promethe-prometheus.netobserv.svc.cluster.local.:9090/</span>
-<span class="s">        alertManager:</span>
-<span class="s">          url: http://my-netobserv-kube-promethe-alertmanager.netobserv.svc.cluster.local.:9093/</span>
-<span class="s">EOF</span>
-</code></pre></div></li>
+<li><strong>Primary (OVN) network EgressIP</strong>: the egress IP belongs to the subnet of the
+  primary machine network of the node. SNAT is performed atomically inside OVN's
+  gateway router. The IP is added to the OVS bridge interface (e.g. <code>breth0</code>).</li>
+<li><strong>Secondary host network EgressIP</strong>: the egress IP belongs to the node's secondary NICs.
+  Traffic is rerouted out of OVN via the management port (<code>ovn-k8s-mp0</code>), then SNAT
+  and routing happen in the host networking stack using iptables and policy-based routing.</li>
 </ul>
-<p>Make sure to check against the latest recommended config and adjust the above example accordingly.
-Wait for all the pods to come up before running port forwarding, then open the test console in your browser.</p>
-<h2 id="workload">Workload<a class="headerlink" href="#workload" title="Permanent link">¶</a></h2>
-<p>To see the samples in NetObserv, we need to generate some traffic in the cluster.
-Let's create 2 namespaces <code>red</code> and <code>blue</code> with 1 pod each, and emulate some pre-defined AdminNetworkPolicy (ANP) that you don't need to read, we will try to understand 
-them later by looking at the samples.
-</p><div class="highlight"><pre><span></span><code>cat<span class="w"> </span><span class="s">&lt;&lt;EOF | kubectl apply -f -</span>
-<span class="s">kind: Namespace</span>
-<span class="s">apiVersion: v1</span>
-<span class="s">metadata:</span>
-<span class="s">  name: blue</span>
-<span class="s">---</span>
-<span class="s">apiVersion: v1</span>
-<span class="s">kind: Pod </span>
-<span class="s">metadata: </span>
-<span class="s">  name: server</span>
-<span class="s">  namespace: blue</span>
-<span class="s">spec:</span>
-<span class="s">  containers:</span>
-<span class="s">    - name: agnhost</span>
-<span class="s">      image: registry.k8s.io/e2e-test-images/agnhost:2.45</span>
-<span class="s">      command: ["/agnhost", "netexec"]</span>
-<span class="s">---</span>
-<span class="s">kind: Namespace</span>
-<span class="s">apiVersion: v1</span>
-<span class="s">metadata:</span>
-<span class="s">  name: red</span>
-<span class="s">---</span>
-<span class="s">apiVersion: v1</span>
-<span class="s">kind: Pod </span>
-<span class="s">metadata: </span>
-<span class="s">  name: server</span>
-<span class="s">  namespace: red</span>
-<span class="s">spec:</span>
-<span class="s">  containers:</span>
-<span class="s">    - name: agnhost</span>
-<span class="s">      image: registry.k8s.io/e2e-test-images/agnhost:2.45</span>
-<span class="s">      command: ["/agnhost", "netexec"]</span>
-<span class="s">---</span>
-<span class="s">apiVersion: policy.networking.k8s.io/v1alpha1</span>
-<span class="s">kind: AdminNetworkPolicy</span>
-<span class="s">metadata:</span>
-<span class="s">  name: drop-google-dns</span>
-<span class="s">spec:</span>
-<span class="s">  priority: 10</span>
-<span class="s">  subject:</span>
-<span class="s">    namespaces: </span>
-<span class="s">      matchLabels:</span>
-<span class="s">        kubernetes.io/metadata.name: blue</span>
-<span class="s">  egress:</span>
-<span class="s">  - action: Deny</span>
-<span class="s">    to:</span>
-<span class="s">    - networks: [8.8.8.8/32]</span>
-<span class="s">EOF</span>
-</code></pre></div><p></p>
-<p>Let's first check if the networking works.</p>
-<p></p><div class="highlight"><pre><span></span><code>$<span class="w"> </span>kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span>blue<span class="w"> </span>server<span class="w"> </span>--<span class="w"> </span>ping<span class="w"> </span><span class="m">8</span>.8.8.8
-PING<span class="w"> </span><span class="m">8</span>.8.8.8<span class="w"> </span><span class="o">(</span><span class="m">8</span>.8.8.8<span class="o">)</span>:<span class="w"> </span><span class="m">56</span><span class="w"> </span>data<span class="w"> </span>bytes
-^C
+<h2 id="multiple-mac-issue-during-egressip-failover-garp-handling">Multiple MAC Issue During EgressIP Failover (GARP Handling)<a class="headerlink" href="#multiple-mac-issue-during-egressip-failover-garp-handling" title="Permanent link">¶</a></h2>
+<p>When an egress IP migrates from Node A (old) to Node B (new) in case of graceful
+shutdown of Node A, Node B sends a GARP to announce its MAC as the owner of the
+egress IP. However, Node A may continue responding to ARP requests for the egress IP
+until it fully shuts down. This creates a window where external switches see two
+different MACs for the same IP, causing traffic to be intermittently sent to the wrong
+node (blackholed).</p>
+<p>Two entities on the old node can respond to ARP for the egress IP:</p>
+<ol>
+<li><strong>The egress IP attached to the bridge interface</strong>: the IP remains on the
+   bridge (e.g. <code>breth0</code>) until the interface is brought down during node
+   shutdown. The Linux kernel responds to ARP requests for any IP on its
+   interfaces.
+   <strong>TODO:</strong> Further discussion is required to decide whether we need primary
+   EgressIP on node interface or not.</li>
+<li><strong>OVN logical flows (SNAT at the gateway router)</strong>: OVN's gateway router ARP
+   responder tables generate unicast ARP replies for any IP that has a SNAT entry.
+   These flows remain active as long as <code>ovs-vswitchd</code> is running.</li>
+</ol>
+<p>In bare-metal environments, node shutdown can take 10-20 seconds, creating a
+prolonged window for multiple MAC responses. As a result, the ARP table at the
+networking device may get updated with a wrong MAC address. The way network
+devices are configured to update the ARP table also contributes to the issue. Modern
+network devices can be configured to override existing neighbor entries without
+GARP to support a scenario where a VIP moves without GARP. However, this is a
+transient issue and gets resolved as soon as the old EgressIP node stops responding
+and the external network device updates the ARP table.</p>
+<div class="highlight"><pre><span></span><code>    Node A (old EIP owner)          Network         Node B (new EIP owner)
+    ──────────────────────         ─────────         ──────────────────────
+              │                        │                       │
+              │     Health check fails │                       │
+              │◄───────────────────────┤                       │
+              │                        │   Cluster manager     │
+              │                        │   reassigns EIP       │
+              │                        │──────────────────────►│
+              │                        │                       │
+              │                        │       GARP (MAC_B)    │
+              │                        │◄──────────────────────┤
+              │                        │                       │
+              │   ARP request for EIP  │                       │
+              │◄───────────────────────┤                       │
+              │                        │                       │
+              │   ARP reply (MAC_A)    │   !! Duplicate MAC    │
+              │───────────────────────►│                       │
+              │                        │                       │
+              │ Network sees TWO MACs for the EIP              │
+              │ Traffic is black-holed intermittently          │
+              │                        │                       │
 </code></pre></div>
-This fails, but why? Let's check if we have any NetworkPolicies in the <code>blue</code> namespace<p></p>
-<div class="highlight"><pre><span></span><code>$<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>networkpolicy<span class="w"> </span>-n<span class="w"> </span>blue
-No<span class="w"> </span>resources<span class="w"> </span>found<span class="w"> </span><span class="k">in</span><span class="w"> </span>blue<span class="w"> </span>namespace.
-</code></pre></div>
-<p>No clue here, let's check the NetObserv console and see if it knows more.
-Go to the <code>Traffic flows</code> tab and select namespace blue. Also make sure to add Destination IP as a column in the table
-because it is not set by default, you can configure visible columns by clicking the <code>Manage columns</code> button.
-Also make sure to either put some non-zero <code>Refresh interval</code> or manually refresh when checking for the latest data.
-You should see something like this:</p>
-<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../images/netobserv-anp-drop.png" data-desc-position="bottom"><img alt="netobserv-anp-drop" src="../images/netobserv-anp-drop.png"></a></p>
-<p>We didn't create any <code>NetworkPolicies</code>, but cluster admin can create cluster-wide policies using <code>AdminNetworkPolicy</code>,
-that may affect any namespace in the cluster, and without the right observability tools, it may be hard to understand
-why some traffic is allowed or dropped.
-While we probably can't see what is inside the ANP, we can infer from the message "Dropped by admin network policy drop-google-dns, direction Egress"
-that drops <code>8.8.8.8</code> specifically and we just picked an unfortunate destination IP to test the network, let's try another one</p>
-<div class="highlight"><pre><span></span><code>$<span class="w"> </span>kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span>blue<span class="w"> </span>server<span class="w"> </span>--<span class="w"> </span>ping<span class="w"> </span><span class="m">1</span>.1.1.1
-PING<span class="w"> </span><span class="m">1</span>.1.1.1<span class="w"> </span><span class="o">(</span><span class="m">1</span>.1.1.1<span class="o">)</span>:<span class="w"> </span><span class="m">56</span><span class="w"> </span>data<span class="w"> </span>bytes
-<span class="m">64</span><span class="w"> </span>bytes<span class="w"> </span>from<span class="w"> </span><span class="m">1</span>.1.1.1:<span class="w"> </span><span class="nv">seq</span><span class="o">=</span><span class="m">0</span><span class="w"> </span><span class="nv">ttl</span><span class="o">=</span><span class="m">55</span><span class="w"> </span><span class="nv">time</span><span class="o">=</span><span class="m">25</span>.378<span class="w"> </span>ms
-<span class="m">64</span><span class="w"> </span>bytes<span class="w"> </span>from<span class="w"> </span><span class="m">1</span>.1.1.1:<span class="w"> </span><span class="nv">seq</span><span class="o">=</span><span class="m">1</span><span class="w"> </span><span class="nv">ttl</span><span class="o">=</span><span class="m">55</span><span class="w"> </span><span class="nv">time</span><span class="o">=</span><span class="m">25</span>.711<span class="w"> </span>ms
-</code></pre></div>
-<p>That's better!
-My <code>blue</code> namespace will need to connect to the <code>red</code> server, let's see if that works</p>
-<div class="highlight"><pre><span></span><code>$<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>red<span class="w"> </span>-o<span class="w"> </span>wide
-NAME<span class="w">     </span>READY<span class="w">   </span>STATUS<span class="w">    </span>RESTARTS<span class="w">   </span>AGE<span class="w">   </span>IP<span class="w">            </span>NODE<span class="w">         </span>NOMINATED<span class="w"> </span>NODE<span class="w">   </span>READINESS<span class="w"> </span>GATES
-server<span class="w">   </span><span class="m">1</span>/1<span class="w">     </span>Running<span class="w">   </span><span class="m">0</span><span class="w">          </span>48m<span class="w">   </span><span class="m">10</span>.244.0.11<span class="w">   </span>ovn-worker<span class="w">   </span>&lt;none&gt;<span class="w">           </span>&lt;none&gt;
+<h3 id="solution-1-garp-drop-flows-on-the-bridge-startup">Solution 1: GARP Drop Flows on the Bridge (Startup)<a class="headerlink" href="#solution-1-garp-drop-flows-on-the-bridge-startup" title="Permanent link">¶</a></h3>
+<p>When ovn-controller starts, it connects to the OVN Southbound database and
+immediately sends GARPs for any egress IPs configured on its logical router
+ports. The Southbound database may be stale if ovnkube-controller has not
+synced yet with new egress IP CR status, causing GARPs for egress IPs that
+have already been reassigned to other nodes.</p>
+<p>To address this, OVN-Kubernetes installs the following OpenFlow rules on the
+default bridge while shutting down node controller manager. We make sure to
+remove these flows after ovn-controller has synced once.</p>
+<div class="highlight"><pre><span></span><code># Allow GARPs sourced from a node IP (priority 499)
+cookie=0x0305,table=0,priority=499,in_port=&lt;patch-port&gt;,dl_dst=ff:ff:ff:ff:ff:ff,arp,arp_op=1,arp_spa=&lt;node-ip&gt;,actions=output:NORMAL
 
-$<span class="w"> </span>kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span>blue<span class="w"> </span>server<span class="w"> </span>--<span class="w"> </span>curl<span class="w"> </span><span class="m">10</span>.244.0.11:8080
-NOW:<span class="w"> </span><span class="m">2026</span>-03-12<span class="w"> </span><span class="m">09</span>:59:20.661985026<span class="w"> </span>+0000<span class="w"> </span>UTC<span class="w"> </span><span class="nv">m</span><span class="o">=</span>+2921.611518203<span class="w"> </span>
-<span class="w">  </span>%<span class="w"> </span>Total<span class="w">    </span>%<span class="w"> </span>Received<span class="w"> </span>%<span class="w"> </span>Xferd<span class="w">  </span>Average<span class="w"> </span>Speed<span class="w">   </span>Time<span class="w">    </span>Time<span class="w">     </span>Time<span class="w">  </span>Current
-<span class="w">                                 </span>Dload<span class="w">  </span>Upload<span class="w">   </span>Total<span class="w">   </span>Spent<span class="w">    </span>Left<span class="w">  </span>Speed
-<span class="m">100</span><span class="w">    </span><span class="m">62</span><span class="w">  </span><span class="m">100</span><span class="w">    </span><span class="m">62</span><span class="w">    </span><span class="m">0</span><span class="w">     </span><span class="m">0</span><span class="w">  </span><span class="m">51666</span><span class="w">      </span><span class="m">0</span><span class="w"> </span>--:--:--<span class="w"> </span>--:--:--<span class="w"> </span>--:--:--<span class="w"> </span><span class="m">62000</span>
+# Drop all other GARPs (priority 498)
+cookie=0x0305,table=0,priority=498,in_port=&lt;patch-port&gt;,dl_dst=ff:ff:ff:ff:ff:ff,arp,arp_op=1,actions=drop
 </code></pre></div>
-<p>Now let's actually protect our namespaces with a NetworkPolicy.
-Allow <code>blue</code> pods to connect to this server only:</p>
-<p></p><div class="highlight"><pre><span></span><code>cat<span class="w"> </span><span class="s">&lt;&lt;EOF | kubectl apply -f -</span>
-<span class="s">kind: NetworkPolicy</span>
-<span class="s">apiVersion: networking.k8s.io/v1</span>
-<span class="s">metadata:</span>
-<span class="s">  name: allow-server</span>
-<span class="s">  namespace: blue</span>
-<span class="s">spec:</span>
-<span class="s">  podSelector: {}</span>
-<span class="s">  egress:</span>
-<span class="s">    - to:</span>
-<span class="s">      ports:</span>
-<span class="s">        - protocol: TCP</span>
-<span class="s">          port: 80</span>
-<span class="s">  policyTypes:</span>
-<span class="s">  - Egress</span>
-<span class="s">EOF</span>
-</code></pre></div>
-aaand check:<p></p>
-<p></p><div class="highlight"><pre><span></span><code>$<span class="w"> </span>kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span>blue<span class="w"> </span>server<span class="w"> </span>--<span class="w"> </span>curl<span class="w"> </span><span class="m">10</span>.244.0.11:8080
-<span class="w">  </span>%<span class="w"> </span>Total<span class="w">    </span>%<span class="w"> </span>Received<span class="w"> </span>%<span class="w"> </span>Xferd<span class="w">  </span>Average<span class="w"> </span>Speed<span class="w">   </span>Time<span class="w">    </span>Time<span class="w">     </span>Time<span class="w">  </span>Current
-<span class="w">                                 </span>Dload<span class="w">  </span>Upload<span class="w">   </span>Total<span class="w">   </span>Spent<span class="w">    </span>Left<span class="w">  </span>Speed
-<span class="w">  </span><span class="m">0</span><span class="w">     </span><span class="m">0</span><span class="w">    </span><span class="m">0</span><span class="w">     </span><span class="m">0</span><span class="w">    </span><span class="m">0</span><span class="w">     </span><span class="m">0</span><span class="w">      </span><span class="m">0</span><span class="w">      </span><span class="m">0</span><span class="w"> </span>--:--:--<span class="w">  </span><span class="m">0</span>:00:02<span class="w"> </span>--:--:--<span class="w">     </span><span class="m">0</span>^C
-</code></pre></div>
-that was unexpected, what now? Let's check the NetObserv console again (don't forget to refresh)<p></p>
-<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../images/netobserv-netpol-drop.png" data-desc-position="bottom"><img alt="netobserv-netpol-drop" src="../images/netobserv-netpol-drop.png"></a></p>
-<p>it says "Dropped by network policies isolation in namespace blue, direction Egress"</p>
-<p>We wanted to allow that connection with the <code>allow-server</code> NetworkPolicy, why doesn't it work?
-Oh, the port is wrong, it should be <code>8080</code> and not <code>80</code>, let's fix that</p>
-<p></p><div class="highlight"><pre><span></span><code>cat<span class="w"> </span><span class="s">&lt;&lt;EOF | kubectl apply -f -</span>
-<span class="s">kind: NetworkPolicy</span>
-<span class="s">apiVersion: networking.k8s.io/v1</span>
-<span class="s">metadata:</span>
-<span class="s">  name: allow-server</span>
-<span class="s">  namespace: blue</span>
-<span class="s">spec:</span>
-<span class="s">  podSelector: {}</span>
-<span class="s">  egress:</span>
-<span class="s">    - to:</span>
-<span class="s">      ports:</span>
-<span class="s">        - protocol: TCP</span>
-<span class="s">          port: 8080</span>
-<span class="s">  policyTypes:</span>
-<span class="s">  - Egress</span>
-<span class="s">EOF</span>
-</code></pre></div>
-and check:
-<div class="highlight"><pre><span></span><code>$<span class="w"> </span>kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span>blue<span class="w"> </span>server<span class="w"> </span>--<span class="w"> </span>curl<span class="w"> </span><span class="m">10</span>.244.0.11:8080
-<span class="w">  </span>%<span class="w"> </span>Total<span class="w">    </span>%<span class="w"> </span>Received<span class="w"> </span>%<span class="w"> </span>Xferd<span class="w">  </span>Average<span class="w"> </span>Speed<span class="w">   </span>Time<span class="w">    </span>Time<span class="w">     </span>Time<span class="w">  </span>Current
-<span class="w">                                 </span>Dload<span class="w">  </span>Upload<span class="w">   </span>Total<span class="w">   </span>Spent<span class="w">    </span>Left<span class="w">  </span>Speed
-<span class="m">100</span><span class="w">    </span><span class="m">62</span><span class="w">  </span><span class="m">100</span><span class="w">    </span><span class="m">62</span><span class="w">    </span><span class="m">0</span><span class="w">     </span><span class="m">0</span><span class="w">  </span><span class="m">48324</span><span class="w">      </span><span class="m">0</span><span class="w"> </span>--:--:--<span class="w"> </span>--:--:--<span class="w"> </span>--:--:--<span class="w"> </span><span class="m">62000</span>
-NOW:<span class="w"> </span><span class="m">2026</span>-03-12<span class="w"> </span><span class="m">10</span>:15:31.210317019<span class="w"> </span>+0000<span class="w"> </span>UTC<span class="w"> </span><span class="nv">m</span><span class="o">=</span>+3892.159850196
-</code></pre></div>
-and NetObserv <code>NetworkEvents</code> says "Allowed by network policy allow-server in namespace blue, direction Egress", 
-exactly what we wanted to see!<p></p>
-<p>Now let's see if the other destinations are dropped:
-</p><div class="highlight"><pre><span></span><code>$<span class="w"> </span>kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span>blue<span class="w"> </span>server<span class="w"> </span>--<span class="w"> </span>ping<span class="w"> </span><span class="m">1</span>.1.1.1
-PING<span class="w"> </span><span class="m">1</span>.1.1.1<span class="w"> </span><span class="o">(</span><span class="m">1</span>.1.1.1<span class="o">)</span>:<span class="w"> </span><span class="m">56</span><span class="w"> </span>data<span class="w"> </span>bytes
-^C
-</code></pre></div>
-and NetObserv says "Dropped by network policies isolation in namespace blue, direction Egress", works as expected!<p></p>
-<p>Now let's create another namespace <code>yellow</code> that runs another server <code>blue</code> namespace needs to connect to.</p>
-<div class="highlight"><pre><span></span><code>cat<span class="w"> </span><span class="s">&lt;&lt;EOF | kubectl apply -f -</span>
-<span class="s">kind: Namespace</span>
-<span class="s">apiVersion: v1</span>
-<span class="s">metadata:</span>
-<span class="s">  name: yellow</span>
-<span class="s">---</span>
-<span class="s">apiVersion: v1</span>
-<span class="s">kind: Pod </span>
-<span class="s">metadata: </span>
-<span class="s">  name: server</span>
-<span class="s">  namespace: yellow</span>
-<span class="s">spec:</span>
-<span class="s">  containers:</span>
-<span class="s">    - name: agnhost</span>
-<span class="s">      image: registry.k8s.io/e2e-test-images/agnhost:2.45</span>
-<span class="s">      command: ["/agnhost", "netexec"]</span>
-<span class="s">EOF</span>
-</code></pre></div>
-<p>We need to create another NetworkPolicy to allow <code>blue</code> namespace to connect to the <code>yellow</code> server, let's check that it fails first.</p>
-<div class="highlight"><pre><span></span><code>$<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>yellow<span class="w"> </span>-o<span class="w"> </span>wide
-NAME<span class="w">     </span>READY<span class="w">   </span>STATUS<span class="w">    </span>RESTARTS<span class="w">   </span>AGE<span class="w">   </span>IP<span class="w">            </span>NODE<span class="w">         </span>NOMINATED<span class="w"> </span>NODE<span class="w">   </span>READINESS<span class="w"> </span>GATES
-server<span class="w">   </span><span class="m">1</span>/1<span class="w">     </span>Running<span class="w">   </span><span class="m">0</span><span class="w">          </span>75m<span class="w">   </span><span class="m">10</span>.244.0.12<span class="w">   </span>ovn-worker<span class="w">   </span>&lt;none&gt;<span class="w">           </span>&lt;none&gt;
-$<span class="w"> </span>kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span>blue<span class="w"> </span>server<span class="w"> </span>--<span class="w"> </span>curl<span class="w"> </span><span class="m">10</span>.244.0.12:8080
-<span class="w">  </span>%<span class="w"> </span>Total<span class="w">    </span>%<span class="w"> </span>Received<span class="w"> </span>%<span class="w"> </span>Xferd<span class="w">  </span>Average<span class="w"> </span>Speed<span class="w">   </span>Time<span class="w">    </span>Time<span class="w">     </span>Time<span class="w">  </span>Current
-<span class="w">                                 </span>Dload<span class="w">  </span>Upload<span class="w">   </span>Total<span class="w">   </span>Spent<span class="w">    </span>Left<span class="w">  </span>Speed
-<span class="m">100</span><span class="w">    </span><span class="m">62</span><span class="w">  </span><span class="m">100</span><span class="w">    </span><span class="m">62</span><span class="w">    </span><span class="m">0</span><span class="w">     </span><span class="m">0</span><span class="w">  </span><span class="m">44349</span><span class="w">      </span><span class="m">0</span><span class="w"> </span>--:--:--<span class="w"> </span>--:--:--<span class="w"> </span>--:--:--<span class="w"> </span><span class="m">62000</span>
-NOW:<span class="w"> </span><span class="m">2026</span>-03-12<span class="w"> </span><span class="m">10</span>:47:48.871924355<span class="w"> </span>+0000<span class="w"> </span>UTC<span class="w"> </span><span class="nv">m</span><span class="o">=</span>+5829.558805665
-</code></pre></div>
-<p>Wait, I didn't allow that, why does it succeed? Let's check NetObserv, it says 
-"Allowed by network policy allow-server in namespace blue, direction Egress", let's take a look at that <code>NetworkPolicy</code> again.
-</p><div class="highlight"><pre><span></span><code><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NetworkPolicy</span>
-<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">networking.k8s.io/v1</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">allow-server</span>
-<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">blue</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">podSelector</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
-<span class="w">  </span><span class="nt">egress</span><span class="p">:</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">to</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">ports</span><span class="p">:</span>
-<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">TCP</span>
-<span class="w">          </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8080</span>
-<span class="w">  </span><span class="nt">policyTypes</span><span class="p">:</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Egress</span><span class="w"> </span>
-</code></pre></div><p></p>
-<p>we only added port-based filtering, but not the namespace filtering, so any connection to port <code>8080</code> is allowed,
-even if it is not the server in the <code>red</code> namespace that we wanted to allow at first. Let's fix this and also
-allow a <code>yellow</code> namespace at the same time.</p>
-<div class="highlight"><pre><span></span><code>cat<span class="w"> </span><span class="s">&lt;&lt;EOF | kubectl apply -f -</span>
-<span class="s">kind: NetworkPolicy</span>
-<span class="s">apiVersion: networking.k8s.io/v1</span>
-<span class="s">metadata:</span>
-<span class="s">  name: allow-server</span>
-<span class="s">  namespace: blue</span>
-<span class="s">spec:</span>
-<span class="s">  podSelector: {}</span>
-<span class="s">  egress:</span>
-<span class="s">    - to:</span>
-<span class="s">      - namespaceSelector:</span>
-<span class="s">          matchExpressions:</span>
-<span class="s">            - key: kubernetes.io/metadata.name</span>
-<span class="s">              operator: In</span>
-<span class="s">              values: </span>
-<span class="s">                - red</span>
-<span class="s">                - yellow</span>
-<span class="s">      ports:</span>
-<span class="s">        - protocol: TCP</span>
-<span class="s">          port: 8080</span>
-<span class="s">  policyTypes:</span>
-<span class="s">  - Egress</span>
-<span class="s">EOF</span>
-</code></pre></div>
-<p>Now both connections to namespace <code>red</code> and <code>yellow</code> are allowed
-</p><div class="highlight"><pre><span></span><code>$<span class="w"> </span>kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span>blue<span class="w"> </span>server<span class="w"> </span>--<span class="w"> </span>curl<span class="w"> </span><span class="m">10</span>.244.0.12:8080
-<span class="w">  </span>%<span class="w"> </span>Total<span class="w">    </span>%<span class="w"> </span>Received<span class="w"> </span>%<span class="w"> </span>Xferd<span class="w">  </span>Average<span class="w"> </span>Speed<span class="w">   </span>Time<span class="w">    </span>Time<span class="w">     </span>Time<span class="w">  </span>Current
-<span class="w">                                 </span>Dload<span class="w">  </span>Upload<span class="w">   </span>Total<span class="w">   </span>Spent<span class="w">    </span>Left<span class="w">  </span>Speed
-<span class="m">100</span><span class="w">    </span><span class="m">62</span><span class="w">  </span><span class="m">100</span><span class="w">    </span><span class="m">62</span><span class="w">    </span><span class="m">0</span><span class="w">     </span><span class="m">0</span><span class="w">  </span><span class="m">48324</span><span class="w">      </span><span class="m">0</span><span class="w"> </span>--:--:--<span class="w"> </span>--:--:--<span class="w"> </span>--:--:--<span class="w"> </span><span class="m">62000</span>
-NOW:<span class="w"> </span><span class="m">2026</span>-03-12<span class="w"> </span><span class="m">10</span>:57:24.224269981<span class="w"> </span>+0000<span class="w"> </span>UTC<span class="w"> </span><span class="nv">m</span><span class="o">=</span>+6404.911151302
-$<span class="w"> </span>kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span>blue<span class="w"> </span>server<span class="w"> </span>--<span class="w"> </span>curl<span class="w"> </span><span class="m">10</span>.244.0.11:8080
-<span class="w">  </span>%<span class="w"> </span>Total<span class="w">    </span>%<span class="w"> </span>Received<span class="w"> </span>%<span class="w"> </span>Xferd<span class="w">  </span>Average<span class="w"> </span>Speed<span class="w">   </span>Time<span class="w">    </span>Time<span class="w">     </span>Time<span class="w">  </span>Current
-<span class="w">                                 </span>Dload<span class="w">  </span>Upload<span class="w">   </span>Total<span class="w">   </span>Spent<span class="w">    </span>Left<span class="w">  </span>Speed
-<span class="m">100</span><span class="w">    </span><span class="m">62</span><span class="w">  </span><span class="m">100</span><span class="w">    </span><span class="m">62</span><span class="w">    </span><span class="m">0</span><span class="w">     </span><span class="m">0</span><span class="w">  </span><span class="m">43175</span><span class="w">      </span><span class="m">0</span><span class="w"> </span>--:--:--<span class="w"> </span>--:--:--<span class="w"> </span>--:--:--<span class="w"> </span><span class="m">62000</span>
-NOW:<span class="w"> </span><span class="m">2026</span>-03-12<span class="w"> </span><span class="m">10</span>:56:08.079663587<span class="w"> </span>+0000<span class="w"> </span>UTC<span class="w"> </span><span class="nv">m</span><span class="o">=</span>+6329.029196764
-</code></pre></div><p></p>
-<p>And if we create another namespace <code>green</code> that we didn't allow, the connection should be dropped
-</p><div class="highlight"><pre><span></span><code>cat<span class="w"> </span><span class="s">&lt;&lt;EOF | kubectl apply -f -</span>
-<span class="s">kind: Namespace</span>
-<span class="s">apiVersion: v1</span>
-<span class="s">metadata:</span>
-<span class="s">  name: green</span>
-<span class="s">---</span>
-<span class="s">apiVersion: v1</span>
-<span class="s">kind: Pod </span>
-<span class="s">metadata: </span>
-<span class="s">  name: server</span>
-<span class="s">  namespace: green</span>
-<span class="s">spec:</span>
-<span class="s">  containers:</span>
-<span class="s">    - name: agnhost</span>
-<span class="s">      image: registry.k8s.io/e2e-test-images/agnhost:2.45</span>
-<span class="s">      command: ["/agnhost", "netexec"]</span>
-<span class="s">EOF</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code>$<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>green<span class="w"> </span>-o<span class="w"> </span>wide
-NAME<span class="w">     </span>READY<span class="w">   </span>STATUS<span class="w">    </span>RESTARTS<span class="w">   </span>AGE<span class="w">   </span>IP<span class="w">            </span>NODE<span class="w">         </span>NOMINATED<span class="w"> </span>NODE<span class="w">   </span>READINESS<span class="w"> </span>GATES
-server<span class="w">   </span><span class="m">1</span>/1<span class="w">     </span>Running<span class="w">   </span><span class="m">0</span><span class="w">          </span>7s<span class="w">    </span><span class="m">10</span>.244.0.13<span class="w">   </span>ovn-worker<span class="w">   </span>&lt;none&gt;<span class="w">           </span>&lt;none&gt;
-$<span class="w"> </span>kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span>blue<span class="w"> </span>server<span class="w"> </span>--<span class="w"> </span>curl<span class="w"> </span><span class="m">10</span>.244.0.13:8080
-<span class="w">  </span>%<span class="w"> </span>Total<span class="w">    </span>%<span class="w"> </span>Received<span class="w"> </span>%<span class="w"> </span>Xferd<span class="w">  </span>Average<span class="w"> </span>Speed<span class="w">   </span>Time<span class="w">    </span>Time<span class="w">     </span>Time<span class="w">  </span>Current
-<span class="w">                                 </span>Dload<span class="w">  </span>Upload<span class="w">   </span>Total<span class="w">   </span>Spent<span class="w">    </span>Left<span class="w">  </span>Speed
-<span class="w">  </span><span class="m">0</span><span class="w">     </span><span class="m">0</span><span class="w">    </span><span class="m">0</span><span class="w">     </span><span class="m">0</span><span class="w">    </span><span class="m">0</span><span class="w">     </span><span class="m">0</span><span class="w">      </span><span class="m">0</span><span class="w">      </span><span class="m">0</span><span class="w"> </span>--:--:--<span class="w">  </span><span class="m">0</span>:00:01<span class="w"> </span>--:--:--<span class="w">     </span><span class="m">0</span>^C
-</code></pre></div><p></p>
-<p>Now we can be sure that our <code>NetworkPolicy</code> is working as expected.</p>
+<ul>
+<li><strong>Priority 499</strong>: allow GARP packets where the source IP is a node IP (via
+  <code>generateGratuitousARPAllowFlow</code>).</li>
+<li><strong>Priority 498</strong>: drop all other GARP packets (via <code>generateGratuitousARPDropFlow</code>).</li>
+</ul>
+<p>These flows match on <code>dl_dst=ff:ff:ff:ff:ff:ff, arp, arp_op=1</code> (broadcast ARP
+requests, the opcode OVN uses for GARPs per RFC 5227).</p>
+<p>The flows remain in place until the ovnkube-controller has fully synced with the
+OVN Northbound database. At that point, stale SNAT entries have been removed, so
+ovn-controller will only GARP for valid egress IPs.</p>
+<p>This solution prevents <strong>outbound stale GARPs</strong> from the restarting node, but
+does <strong>not</strong> prevent the node from <strong>responding</strong> to incoming ARP requests.</p>
+<h3 id="solution-2-nftables-arpndp-blocking-during-shutdown">Solution 2: nftables ARP/NDP Blocking During Shutdown<a class="headerlink" href="#solution-2-nftables-arpndp-blocking-during-shutdown" title="Permanent link">¶</a></h3>
+<p>The GARP drop flows above address the startup case but do not cover the shutdown
+case: after the egress IP is reassigned to Node B, Node A's kernel and OVN
+logical flows still respond to ARP requests until <code>ovs-vswitchd</code> stops.</p>
+<h4 id="why-nftables-and-the-netdev-family">Why nftables and the netdev Family<a class="headerlink" href="#why-nftables-and-the-netdev-family" title="Permanent link">¶</a></h4>
+<p>The key insight is that ARP responses on the old node originate from two
+independent subsystems (kernel IP stack and OVN logical flows), and both must be
+silenced before the bridge interface is brought down. The <code>netdev</code> table family
+in nftables provides an ingress hook on the physical uplink interface that
+evaluates packets <strong>before</strong> they reach the OVS bridge. This is the earliest
+possible interception point — it stops ARP requests from reaching either the
+bridge interface (where the kernel would respond) or <code>ovs-vswitchd</code> (where OVN
+logical flows would respond).</p>
+<h4 id="shutdown-sequence">Shutdown Sequence<a class="headerlink" href="#shutdown-sequence" title="Permanent link">¶</a></h4>
+<p>The following sequence is executed during graceful shutdown:</p>
+<ol>
+<li><strong>Collect assigned egress IPs</strong>: queries the EgressIP informer to find all
+   egress IPs currently assigned to this node.</li>
+<li><strong>Install nftables drop rules</strong>: the following components are added to the node
+   to drop unwanted ARP packets:</li>
+<li>A dedicated nftables table <code>ovn-kubernetes-egressip</code> in the <code>netdev</code>
+     family.</li>
+<li>A chain <code>egressip-drop</code> with an ingress hook on the physical uplink
+     interface (e.g. <code>ens3f0np0</code>), at filter priority.</li>
+<li>For IPv4: a set <code>egressip-v4</code> populated with the assigned egress IPs, and
+     a rule that drops all ARP requests from outside destined towards the EgressIP
+     hosted on this node.</li>
+<li>For IPv6: a set <code>egressip-v6</code> populated with the assigned egress IPs, and
+     a rule that drops all neighbor solicitations from outside destined towards
+     the EgressIP hosted on this node.</li>
+<li><strong>Re-enable GARP drop flows</strong>: adds the aforementioned GARP drop flows to ensure
+   that any stale GARPs from <code>br-int</code> are also dropped during the remaining
+   shutdown window.</li>
+<li><strong>Continue shutdown</strong>: the default node network controller and network manager
+   are stopped, eventually bringing down <code>ovs-vswitchd</code>.</li>
+</ol>
+<p>The nftables rules are installed synchronously and atomically via a single
+nftables transaction, guaranteeing they are active before any subsequent cleanup
+steps remove the egress IP from the bridge or trigger OVN reconvergence.</p>
+<p><strong>Known limitation (status-driven race):</strong> step 1 decides what to block from
+the EgressIP status in the informer cache, but the entities that answer ARP —
+the OVN SNAT flow and the IP on the interface — are removed asynchronously. If
+a reassignment moves the egress IP off this node in status <em>before</em> that
+dataplane cleanup completes (e.g. an EIP re-selection unrelated to this node's
+shutdown), the collected list may omit an egress IP that is still physically
+present, leaving a window where the node keeps responding to ARP.</p>
+<p><strong>Known Limitation 2 (network type):</strong> This solution works for cluster default
+network and user defined networks when primary Egress IPs are used. It doesn't
+address any such issues for secondary Egress IPs.</p>
+<h4 id="startup-cleanup">Startup Cleanup<a class="headerlink" href="#startup-cleanup" title="Permanent link">¶</a></h4>
+<p>On the next startup, NodeControllerManager deletes the entire
+<code>ovn-kubernetes-egressip</code> table. This cleanup runs after the OVN controller has
+synced and stale SNATs have been removed, ensuring the nftables rules are not
+removed before OVN has converged to the correct state.</p>
+<p>For a full node reboot, the kernel automatically clears all nftables state, so
+the cleanup primarily handles container/process restarts where the host kernel
+persists nftables rules across restarts of the ovnkube process.</p>
+<h4 id="ungraceful-shutdown">Ungraceful Shutdown<a class="headerlink" href="#ungraceful-shutdown" title="Permanent link">¶</a></h4>
+<p>In the case of an ungraceful shutdown (OOM kill, <code>SIGKILL</code>, power failure), the
+nftables rules are not installed. However, this is acceptable because in an
+ungraceful shutdown:</p>
+<ul>
+<li><code>ovs-vswitchd</code> stops immediately, so OVN logical flows cannot respond to ARP.</li>
+<li>The network interface goes down (or the entire host is unreachable), so the
+  kernel cannot respond either.</li>
+</ul>
+<p>The multiple MAC problem specifically occurs during <strong>graceful</strong> shutdown where
+the host networking stack remains operational for an extended period after the
+egress IP has been reassigned.</p>
+<h4 id="combined-protection">Combined Protection<a class="headerlink" href="#combined-protection" title="Permanent link">¶</a></h4>
+<p>The two solutions work together to cover both directions of the race:</p>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Protection</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Startup</strong>: ovn-controller GARPs for stale egress IPs from the Southbound DB</td>
+<td>GARP drop flows on the bridge (Solution 1)</td>
+</tr>
+<tr>
+<td><strong>Shutdown</strong>: old node responds to ARP requests from the new node's GARP broadcast</td>
+<td>nftables netdev ingress drop rules (Solution 2)</td>
+</tr>
+<tr>
+<td><strong>Shutdown</strong>: old node's OVN logical flows generate stale GARPs via <code>br-int</code></td>
+<td>GARP drop flows re-enabled during <code>Stop()</code> (Solution 1, reactivated)</td>
+</tr>
+</tbody>
+</table>
 
 
 
 
 
 
-
-  
-  
 
 
 

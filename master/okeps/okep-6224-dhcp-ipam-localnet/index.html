@@ -1336,6 +1336,8 @@
       
         
       
+        
+      
     
     
     
@@ -1683,6 +1685,34 @@
     
   
     Release Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/maintenance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintenance Guide
   
 
     
@@ -2185,6 +2215,8 @@
       
         
       
+        
+      
     
     
     
@@ -2336,6 +2368,34 @@
     
   
     Dynamic UDN Node Allocation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/user-defined-networks/dhcp-ipam-localnet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DHCP IPAM for Localnet Networks
   
 
     
@@ -3894,6 +3954,8 @@
       
         
       
+        
+      
     
     
     
@@ -4366,6 +4428,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../okep-5212-ovnobserv-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OVN Observability API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -4384,10 +4474,6 @@
       
         
           
-        
-      
-        
-      
         
       
         
@@ -4450,65 +4536,27 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="../../blog/dpu-acceleration/" class="md-nav__link">
+    
+    
+      
         
-  
-  
-  <span class="md-ellipsis">
+      
     
-  
-    Accelerating and Securing Kubernetes Networking with DPUs
-  
-
     
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_2">
+        
+          
+          <label class="md-nav__link" for="__nav_9_2" id="__nav_9_2_label" tabindex="0">
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/netobserv/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Debugging NetworkPolicies with NetObserv
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
-        
   
   
   <span class="md-ellipsis">
@@ -4522,7 +4570,53 @@
   
   
 
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/archive/2026/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2026
+  
+
+    
+  </span>
+  
+  
+
       </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -4923,6 +5017,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#known-limitation-dhcp-ipam-is-currently-supported-only-for-ipv4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Known Limitation: DHCP IPAM is currently supported only for IPv4
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#known-limitation-dhcp-release-with-dnsmasq-pod-delegation-path" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5050,6 +5155,7 @@
 <h2 id="future-goals">Future Goals<a class="headerlink" href="#future-goals" title="Permanent link">¶</a></h2>
 <ul>
 <li>Extend DHCP IPAM support to Layer 2 and layer 3 topologies.</li>
+<li>Extend DHCP IPAM support to IPv6 (DHCPv6) and dual-stack networks — <strong>the current mode is IPv4-only</strong>; see the known limitation below.</li>
 <li>Supporting DHCP IPAM in unprivileged ovnkube-node mode.</li>
 <li>Explore an alternative model where the guest drives DHCP and OVN-Kubernetes learns the resulting IPs/MACs afterwards, rather than initiating the DORA at CNI ADD that would pave the way for other use cases such as discovering guest-assigned addresses more generally.</li>
 </ul>
@@ -5129,7 +5235,7 @@ so that the VM keeps the same address and connectivity across migration without 
 </tr>
 <tr>
 <td><code>DHCP</code></td>
-<td>External DHCP; behavior selected at runtime by workload type</td>
+<td>External DHCP, IPv4-only; behavior selected at runtime by workload type</td>
 <td>Pods: DHCP CNI daemon. VMs: guest OS</td>
 <td>Forbidden</td>
 </tr>
@@ -5137,7 +5243,7 @@ so that the VM keeps the same address and connectivity across migration without 
 </table>
 <h4 id="field-descriptions">Field Descriptions<a class="headerlink" href="#field-descriptions" title="Permanent link">¶</a></h4>
 <ul>
-<li><code>DHCP</code>: OVN-Kubernetes delegates IP assignment to the external DHCP server and selects the lease-handling behavior at CNI ADD time based on the workload type:</li>
+<li><code>DHCP</code>: OVN-Kubernetes delegates IP assignment to the external DHCP server (<strong>IPv4 only</strong>) and selects the lease-handling behavior at CNI ADD time based on the workload type:</li>
 <li><strong>Pods</strong> (not owned by a VirtualMachineInstance): OVN-Kubernetes delegates to the DHCP CNI IPAM plugin daemon, which performs the full DHCP handshake and maintains the lease (renewals at T1/T2) for the pod's lifetime. The lease is released on CNI DEL.</li>
 <li><strong>KubeVirt VMs</strong> (owned by a VirtualMachineInstance): OVN-Kubernetes performs a one-shot DHCP lease acquisition during CNI ADD to discover the IP address assigned by the external DHCP server. No lease maintenance is performed; the VM runs its own DHCP client and manages the lease lifecycle. The discovered IP is reported in the CNI result for multus annotation and NBDB programming.</li>
 </ul>
@@ -5299,6 +5405,12 @@ so that the VM keeps the same address and connectivity across migration without 
 <li>Update existing localnet documentation to reference the DHCP IPAM mode</li>
 </ul>
 <h2 id="risks-known-limitations-and-mitigations">Risks, Known Limitations and Mitigations<a class="headerlink" href="#risks-known-limitations-and-mitigations" title="Permanent link">¶</a></h2>
+<h3 id="known-limitation-dhcp-ipam-is-currently-supported-only-for-ipv4">Known Limitation: DHCP IPAM is currently supported only for IPv4<a class="headerlink" href="#known-limitation-dhcp-ipam-is-currently-supported-only-for-ipv4" title="Permanent link">¶</a></h3>
+<p>The upstream DHCP CNI plugin (pod path) and the one-shot VM discovery both speak DHCPv4 only. OVN-Kubernetes therefore treats a DHCP network as IPv4
+throughout the stack (IP-based feature matches, address sets). Currently, an IPv6 address a guest acquires on its own via DHCPv6 or router advertisements
+is not reported to OVN-Kubernetes.</p>
+<p><strong>Mitigation:</strong> IPv6 support requires DHCPv6 support in the upstream DHCP CNI
+plugin. once available, it will extend this same <code>DHCP</code> mode.</p>
 <h3 id="known-limitation-dhcp-release-with-dnsmasq-pod-delegation-path">Known Limitation: DHCP RELEASE with dnsmasq (pod delegation path)<a class="headerlink" href="#known-limitation-dhcp-release-with-dnsmasq-pod-delegation-path" title="Permanent link">¶</a></h3>
 <p>The upstream DHCP CNI plugin sends DHCP RELEASE packets with source IP <code>0.0.0.0</code> instead of the client's assigned IP. This is because the plugin uses raw broadcast sockets (<code>nclient4.NewRawUDPConn</code>) for all operations, but RELEASE should use unicast per RFC 2131. dnsmasq validates the source IP and silently drops RELEASE packets with <code>0.0.0.0</code>. The lease expires naturally on the DHCP server side.</p>
 <p><strong>Mitigation:</strong>  A fix is required in the upstream DHCP CNI plugin to use <code>nclient4.WithUnicast()</code> when creating the client for RELEASE operations.</p>

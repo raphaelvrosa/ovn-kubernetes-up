@@ -1346,6 +1346,8 @@
       
         
       
+        
+      
     
     
     
@@ -1917,6 +1919,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/maintenance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintenance Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2406,6 +2436,8 @@
       
         
       
+        
+      
     
     
     
@@ -2557,6 +2589,34 @@
     
   
     Dynamic UDN Node Allocation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/user-defined-networks/dhcp-ipam-localnet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DHCP IPAM for Localnet Networks
   
 
     
@@ -4115,6 +4175,8 @@
       
         
       
+        
+      
     
     
     
@@ -4587,6 +4649,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../okeps/okep-5212-ovnobserv-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OVN Observability API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -4605,10 +4695,6 @@
       
         
           
-        
-      
-        
-      
         
       
         
@@ -4671,65 +4757,27 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="../../blog/dpu-acceleration/" class="md-nav__link">
+    
+    
+      
         
-  
-  
-  <span class="md-ellipsis">
+      
     
-  
-    Accelerating and Securing Kubernetes Networking with DPUs
-  
-
     
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_2">
+        
+          
+          <label class="md-nav__link" for="__nav_9_2" id="__nav_9_2_label" tabindex="0">
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/netobserv/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Debugging NetworkPolicies with NetObserv
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
-        
   
   
   <span class="md-ellipsis">
@@ -4743,7 +4791,53 @@
   
   
 
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/archive/2026/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2026
+  
+
+    
+  </span>
+  
+  
+
       </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -5035,7 +5129,7 @@ that you want to work on it. Something like "I want to work on this" is fine.</p
 </ol>
 <p>In some cases, other changes may conflict with your PR. If this happens, you will get notified by a comment in the issue that your PR requires a rebase, and the <code>needs-rebase</code> label will be applied. Once a rebase has been performed, this label will be automatically removed.</p>
 <h2 id="development-environment-setup">Development Environment Setup<a class="headerlink" href="#development-environment-setup" title="Permanent link">¶</a></h2>
-<p>You can easily setup a developer environment by following the instructions <a href="https://ovn-kubernetes.io/installation/launching-ovn-kubernetes-on-kind/">here</a>.</p>
+<p>You can easily setup a developer environment by following the instructions <a href="https://ovn-kubernetes.io/master/installation/launching-ovn-kubernetes-on-kind/">here</a>.</p>
 <h2 id="sign-your-commits">Sign Your Commits<a class="headerlink" href="#sign-your-commits" title="Permanent link">¶</a></h2>
 <h3 id="dco">DCO<a class="headerlink" href="#dco" title="Permanent link">¶</a></h3>
 <p>Licensing is important to open source projects. It provides some assurances that
@@ -5061,8 +5155,11 @@ repository, you can amend your commit with the sign-off by running </p>
 <p>It is a recommended best practice to keep your changes as logically grouped as
 possible within individual commits. If while you're developing you prefer doing
 a number of commits that are "checkpoints" and don't represent a single logical
-change, please squash those together before asking for a review.
-When addressing review comments, please perform an interactive rebase and edit commits directly rather than adding new commits with messages like "Fix review comments".</p>
+change, please squash those together before asking for a review.</p>
+<p>When addressing review comments, please perform an interactive rebase and edit commits directly rather than adding new commits with messages like "Fix review comments".
+After force-pushing the changes, GitHub shows a "force-pushed" entry with a comparison link, that allows reviewers to check the incremental diff.
+Avoid mixing edited commits and a rebase within the same force-push, as that would make the incremental diff harder to read for reviewers. Push the rebased branch separately.</p>
+<p>To help reviewers, you can also add a comment including the comparison link, to make sure it persists (GitHub sometimes consolidates several diffs into a single one).</p>
 <h2 id="commit-message-guidelines">Commit message guidelines<a class="headerlink" href="#commit-message-guidelines" title="Permanent link">¶</a></h2>
 <p>A good commit message should describe what changed and why.</p>
 <ol>

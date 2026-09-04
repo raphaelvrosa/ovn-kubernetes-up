@@ -1611,6 +1611,8 @@
       
         
       
+        
+      
     
     
     
@@ -1958,6 +1960,34 @@
     
   
     Release Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/maintenance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintenance Guide
   
 
     
@@ -2465,6 +2495,8 @@
       
         
       
+        
+      
     
     
     
@@ -2616,6 +2648,34 @@
     
   
     Dynamic UDN Node Allocation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-defined-networks/dhcp-ipam-localnet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DHCP IPAM for Localnet Networks
   
 
     
@@ -4443,6 +4503,8 @@
       
         
       
+        
+      
     
     
     
@@ -4915,6 +4977,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../okeps/okep-5212-ovnobserv-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OVN Observability API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -4933,10 +5023,6 @@
       
         
           
-        
-      
-        
-      
         
       
         
@@ -4999,65 +5085,27 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="../../blog/dpu-acceleration/" class="md-nav__link">
+    
+    
+      
         
-  
-  
-  <span class="md-ellipsis">
+      
     
-  
-    Accelerating and Securing Kubernetes Networking with DPUs
-  
-
     
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_2">
+        
+          
+          <label class="md-nav__link" for="__nav_9_2" id="__nav_9_2_label" tabindex="0">
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/netobserv/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Debugging NetworkPolicies with NetObserv
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
-        
   
   
   <span class="md-ellipsis">
@@ -5071,7 +5119,53 @@
   
   
 
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/archive/2026/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2026
+  
+
+    
+  </span>
+  
+  
+
       </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -5571,34 +5665,17 @@ ignition yaml:</p>
 - The VM's gateway IP (subnet gateway) and MAC are kept consistent across nodes using ARP proxy</p>
 <p><strong>Point to point routing:</strong></p>
 <p>When the VM is running at a node that does not "own" it's IP address - e.g. after a live migration - 
-after a live migration, do point to point routing with a policy for non 
-interconnect and a cluster wide static route for interconnected zones, it will
-route outbound traffic and a static route to route inboud.
+point to point routing is done with static routes: at the local zone (zone where
+vm is running) a route to route inbound traffic to the VM and a cluster wide
+route to route egress n/s traffic to the gw router; at remote zones a static
+route to route traffic to the migrated VM over the transit switch port address.
 By doing this, the VM can live migrate to different node and keep previous 
 addresses (IP / MAC), thus preserving n/s and e/w communication, and ensuring traffic
 goes over the node where the VM is running. The latter reduces inter node communication.</p>
-<p>If the VM is going back to the node that "owns" the ip, those static routes and 
-policies should be reconciled (deleted).</p>
-<div class="highlight"><pre><span></span><code>       ┌───────────────────────────┐
-       │     ovn_cluster_router    │
-┌───────────────────────────┐   ┌────────────────────────────┐
-│ static route (ingress all)│───│ policy  (egress n/s)       │
-│ prefix: 10.244.0.8        │   │ match: ip4.src==10.244.0.8 │
-│ nexthop: 10.244.0.8       │   │ action: reroute            │
-│ output-port: rtos-node1   │   │ nexthop: 10.64.0.2         │
-│ policy: dst-ip            │   │                            │  
-└───────────────────────────┘   └────────────────────────────┘ 
-- static route: ingress traffic to VM's IP via VM's node port
-- policy: egress n/s traffic from VM's IP via gateway router ip
-</code></pre></div>
-<p>When ovn-kubernetes is deployed with multiple ovn zones interconected 
-an extra static route is added to the local zone (zone where vm is running) to
-route egress n/s traffic to the gw router. Note that for interconnect the
-previous policy is not needed, at remote zones a static route is address to 
-enroute VM egress traffic over the transit switch port address.</p>
+<p>If the VM is going back to the node that "owns" the ip, those static routes
+should be reconciled (deleted).</p>
 <p>If the transit switch port address is 10.64.0.3 and gw router is 10.64.0.2, 
-those below are the static route added to the topology when running with 
-multiple zones:</p>
+those below are the static routes added to the topology:</p>
 <div class="highlight"><pre><span></span><code>Local zone:
        ┌───────────────────────────┐
        │     ovn_cluster_router    │
