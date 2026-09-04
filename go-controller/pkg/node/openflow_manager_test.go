@@ -5,6 +5,7 @@ package node
 
 import (
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/ovn-kubernetes/ovn-kubernetes/go-controller/pkg/config"
@@ -137,6 +138,46 @@ func TestOpenFlowManagerSyncsUplinkBridgeFlows(t *testing.T) {
 	}
 	if found {
 		t.Fatal("expected missing uplink bridge not to be found")
+	}
+}
+
+func TestOpenFlowManagerUplinkSourceChangeCallback(t *testing.T) {
+	ofm := &openflowManager{
+		uplinkBridgeNetworks: map[string]uplinkBridgesNetworks{},
+	}
+	var notified []string
+	ofm.RegisterUplinkCallback(func(network string) {
+		notified = append(notified, network)
+	})
+
+	source := func() string { return ofm.GetMacBindingSourceForUplinks()["br"] }
+
+	// New bridge: first network becomes the default source, callback fires.
+	ofm.updateUplinkBridgeNetworks("br", "A", true)
+	if got := source(); got != "A" {
+		t.Fatalf("expected source A after adding first network, got %q", got)
+	}
+
+	// Second network on the same bridge: default unchanged, no callback.
+	ofm.updateUplinkBridgeNetworks("br", "B", true)
+	if got := source(); got != "A" {
+		t.Fatalf("expected source to stay A after adding second network, got %q", got)
+	}
+
+	// Delete the default: it is reassigned to B and persisted, callback fires.
+	ofm.updateUplinkBridgeNetworks("br", "A", false)
+	if got := source(); got != "B" {
+		t.Fatalf("expected source B after deleting A, got %q", got)
+	}
+
+	// Delete the last network: bridge is removed, no callback.
+	ofm.updateUplinkBridgeNetworks("br", "B", false)
+	if _, exists := ofm.uplinkBridgeNetworks["br"]; exists {
+		t.Fatalf("expected bridge to be removed after deleting last network")
+	}
+
+	if want := []string{"A", "B"}; !slices.Equal(notified, want) {
+		t.Fatalf("expected callbacks %v, got %v", want, notified)
 	}
 }
 
