@@ -207,7 +207,7 @@ func newNBClient(sockPath string, testCtx *Context) (libovsdbclient.Client, erro
 
 func newSBClient(sockPath string, testCtx *Context) (libovsdbclient.Client, error) {
 	stopChan := make(chan struct{})
-	sbClient, err := libovsdb.NewSBClientWithEndpoint("unix:"+sockPath, prometheus.NewRegistry(), stopChan)
+	sbClient, err := libovsdb.NewSBClientWithEndpoint("", "unix:"+sockPath, prometheus.NewRegistry(), stopChan)
 	if err != nil {
 		return nil, err
 	}
@@ -365,12 +365,12 @@ func newOVSDBServer(sockPath string, dbModel model.ClientDBModel, schema ovsdb.D
 
 	dbMod, errs := model.NewDatabaseModel(schema, dbModel)
 	if len(errs) > 0 {
-		log.Fatal(errs)
+		return nil, fmt.Errorf("failed to create database model for %s: %v", schema.Name, errs)
 	}
 
 	servMod, errs := model.NewDatabaseModel(serverSchema, serverDBModel)
 	if len(errs) > 0 {
-		log.Fatal(errs)
+		return nil, fmt.Errorf("failed to create database model for %s: %v", serverSchema.Name, errs)
 	}
 
 	s, err := server.NewOvsdbServer(db, nil, dbMod, servMod)
@@ -378,15 +378,13 @@ func newOVSDBServer(sockPath string, dbModel model.ClientDBModel, schema ovsdb.D
 		return nil, err
 	}
 
-	// Populate the _Server database table
-	sid := fmt.Sprintf("%04x", cryptorand.Uint32())
+	// Populate the standard _Server metadata for this standalone test database.
 	serverData := []TestData{
 		&serverdb.Database{
 			Name:      dbModel.Name(),
 			Connected: true,
 			Leader:    true,
-			Model:     serverdb.DatabaseModelClustered,
-			Sid:       &sid,
+			Model:     serverdb.DatabaseModelStandalone,
 		},
 	}
 	if err := updateData(db, servMod, serverData, false); err != nil {
@@ -473,6 +471,25 @@ func (t *TestOvsdbServer) CreateTestData(data []TestData) error {
 	}
 
 	return nil
+}
+
+// GetData returns all rows stored in the server database for the given tables.
+// Unlike getTestDataFromClientCache, the returned models have every column
+// populated regardless of which columns a client chose to monitor. This is
+// useful for asserting on columns that the production client does not monitor
+// (e.g. MAC_Binding datapath/timestamp).
+func (t *TestOvsdbServer) GetData(tables ...string) ([]TestData, error) {
+	data := []TestData{}
+	for _, table := range tables {
+		rows, err := t.db.List(t.dbMod.Schema.Name, table)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list table %s: %w", table, err)
+		}
+		for _, row := range rows {
+			data = append(data, row)
+		}
+	}
+	return data, nil
 }
 
 func tempOVSDBSocketFileName() string {

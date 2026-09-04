@@ -73,6 +73,10 @@ global:
   enableMultiNetwork: false
   # -- Configure to use user defined networks (UDN) feature with ovn-kubernetes
   enableNetworkSegmentation: false
+  # -- UDN ARP proxy mode: "false" (disabled)
+  enableUDNARPProxy: false
+  # -- UDN NDP proxy mode: "false" (disabled)
+  enableUDNNDPProxy: false
   # -- Configure to enable cluster network connect feature with ovn-kubernetes
   enableNetworkConnect: false
   # -- Configure to enable the uplink feature with ovn-kubernetes
@@ -146,10 +150,6 @@ global:
   aclLoggingRateLimit: 20
   # -- If set, then load balancers do not get deleted when all backends are removed
   emptyLbEvents: ""
-  # -- Port of north bound ovsdb
-  nbPort: 6641
-  # -- Port of south bound ovsdb
-  sbPort: 6642
   # -- A comma separated set of NetFlow collectors to export flow data
   netFlowTargets: ""
   # -- A comma separated set of SFlow collectors to export flow data

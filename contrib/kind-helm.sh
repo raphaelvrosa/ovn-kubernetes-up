@@ -34,7 +34,6 @@ usage() {
     echo "usage: kind-helm.sh [--delete]"
     echo "       [ -cf  | --config-file <file> ]"
     echo "       [ -kt  | --keep-taint ]"
-    echo "       [ -ha  | --ha-enabled ]"
     echo "       [ -me  | --multicast-enabled ]"
     echo "       [ -ho  | --hybrid-enabled ]"
     echo "       [ -el  | --ovn-empty-lb-events ]"
@@ -88,6 +87,8 @@ usage() {
     echo "-ikv | --install-kubevirt                     Install kubevirt"
     echo "-mne | --multi-network-enable                 Enable multi networks. DEFAULT: Disabled"
     echo "-nse | --network-segmentation-enable          Enable network segmentation. DEFAULT: Disabled"
+    echo "-uap | --udn-arp-proxy-enable                 UDN ARP Proxy enabled. DEFAULT: Disabled"
+    echo "-unp | --udn-ndp-proxy-enable                 UDN NDP Proxy enabled. DEFAULT: Disabled"
     echo "-nce | --network-connect-enable               Enable network connect (requires network segmentation). DEFAULT: Disabled"
     echo "-ue  | --uplink-enable                        Enable uplink (requires network segmentation). DEFAULT: Disabled"
     echo "-uae | --preconfigured-udn-addresses-enable   Enable connecting workloads with preconfigured network to user-defined networks. DEFAULT: Disabled"
@@ -104,7 +105,6 @@ usage() {
     echo "--disable-ovnkube-identity                    Disable per-node cert and ovnkube-identity webhook. DEFAULT: Enabled"
     echo "-dgb | --dummy-gateway-bridge                 Use a dummy instead of a real gateway bridge. DEFAULT: Disabled"
     echo "-gm  | --gateway-mode                         Configure the cluster gateway mode (local|shared). DEFAULT: shared"
-    echo "-ha  | --ha-enabled                           Enable high availability. DEFAULT: HA Disabled"
     echo "-n4  | --no-ipv4                              Disable IPv4. DEFAULT: IPv4 Enabled."
     echo "-i6  | --ipv6                                 Enable IPv6. DEFAULT: IPv6 Disabled."
     echo "-wk  | --num-workers                          Number of worker nodes. DEFAULT: 2 workers"
@@ -196,6 +196,10 @@ parse_args() {
                                                   ;;
             -nse | --network-segmentation-enable) ENABLE_NETWORK_SEGMENTATION=true
                                                   ;;
+            -uap | --udn-arp-proxy-enable)        ENABLE_UDN_ARP_PROXY=true
+                                                  ;;
+            -unp | --udn-ndp-proxy-enable)        ENABLE_UDN_NDP_PROXY=true
+                                                  ;;
             -nce | --network-connect-enable )     ENABLE_NETWORK_CONNECT=true
                                                   ;;
             -ue | --uplink-enable )               ENABLE_UPLINK=true
@@ -257,9 +261,6 @@ parse_args() {
             -n4 | --no-ipv4 )                     PLATFORM_IPV4_SUPPORT=false
                                                   ;;
             -i6 | --ipv6 )                        PLATFORM_IPV6_SUPPORT=true
-                                                  ;;
-            -ha | --ha-enabled )                  OVN_HA=true
-                                                  KIND_NUM_MASTER=3
                                                   ;;
             -wk | --num-workers )                 shift
                                                   if ! [[ "$1" =~ ^[0-9]+$ ]]; then
@@ -452,7 +453,6 @@ print_params() {
      echo "KIND_INSTALL_METALLB = $KIND_INSTALL_METALLB"
      echo "KIND_INSTALL_PLUGINS = $KIND_INSTALL_PLUGINS"
      echo "KIND_INSTALL_KUBEVIRT = $KIND_INSTALL_KUBEVIRT"
-     echo "OVN_HA = $OVN_HA"
      echo "OVN_MULTICAST_ENABLE = $OVN_MULTICAST_ENABLE"
      echo "OVN_HYBRID_OVERLAY_ENABLE = $OVN_HYBRID_OVERLAY_ENABLE"
      echo "OVN_OBSERV_ENABLE = $OVN_OBSERV_ENABLE"
@@ -461,6 +461,8 @@ print_params() {
      echo "KIND_REMOVE_TAINT = $KIND_REMOVE_TAINT"
      echo "ENABLE_MULTI_NET = $ENABLE_MULTI_NET"
      echo "ENABLE_NETWORK_SEGMENTATION = $ENABLE_NETWORK_SEGMENTATION"
+     echo "ENABLE_UDN_ARP_PROXY = $ENABLE_UDN_ARP_PROXY"
+     echo "ENABLE_UDN_NDP_PROXY = $ENABLE_UDN_NDP_PROXY"
      echo "ENABLE_NETWORK_CONNECT = $ENABLE_NETWORK_CONNECT"
      echo "ENABLE_UPLINK = $ENABLE_UPLINK"
      echo "ENABLE_PRE_CONF_UDN_ADDR = $ENABLE_PRE_CONF_UDN_ADDR"
@@ -608,6 +610,8 @@ helm upgrade --install ovn-kubernetes . -f "${value_file}" ${extra_values_args} 
           --set global.enableMulticast=$(if [ "${OVN_MULTICAST_ENABLE}" == "true" ]; then echo "true"; else echo "false"; fi) \
           --set global.enableMultiNetwork=$(if [ "${ENABLE_MULTI_NET}" == "true" ]; then echo "true"; else echo "false"; fi) \
           --set global.enableNetworkSegmentation=$(if [ "${ENABLE_NETWORK_SEGMENTATION}" == "true" ]; then echo "true"; else echo "false"; fi) \
+          --set global.enableUDNARPProxy=$(if [ "${ENABLE_UDN_ARP_PROXY}" == "true" ]; then echo "true"; else echo "false"; fi) \
+          --set global.enableUDNNDPProxy=$(if [ "${ENABLE_UDN_ARP_PROXY}" == "true" ]; then echo "true"; else echo "false"; fi) \
           --set global.enableNetworkConnect=$(if [ "${ENABLE_NETWORK_CONNECT}" == "true" ]; then echo "true"; else echo "false"; fi) \
           --set global.enableUplink=$(if [ "${ENABLE_UPLINK}" == "true" ]; then echo "true"; else echo "false"; fi) \
           --set global.enableDynamicUDNAllocation=$(if [ "${DYNAMIC_UDN_ALLOCATION}" == "true" ]; then echo "true"; else echo "false"; fi) \
