@@ -686,6 +686,16 @@ func (b *BridgeConfiguration) GetEIPMarkIPs() *egressip.MarkIPsCache {
 	return b.eipMarkIPs
 }
 
+func (b *BridgeConfiguration) GetNetworkConfigNames() []string {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+	netconfigNames := make([]string, len(b.netConfig))
+	for netName := range b.netConfig {
+		netconfigNames = append(netconfigNames, netName)
+	}
+	return netconfigNames
+}
+
 func (b *BridgeConfiguration) SetEIPMarkIPs(eipMarkIPs *egressip.MarkIPsCache) {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
