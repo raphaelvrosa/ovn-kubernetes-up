@@ -1,0 +1,25 @@
+---
+# One RouteAdvertisements per CUDN. This is the fan-out worst case:
+# generated FRRConfigurations = RAs x nodes x matching source FRRConfigurations.
+#
+# nodeSelector MUST be empty. The CRD's CEL rule rejects a populated nodeSelector
+# when PodNetwork is advertised, so the RA x node dimension cannot be reduced by
+# selection - only by EnableDynamicUDNAllocation.
+apiVersion: k8s.ovn.org/v1
+kind: RouteAdvertisements
+metadata:
+  name: ra-{{ sub .Replica 1 }}
+spec:
+  targetVRF: {{ .targetVRF }}
+  advertisements:
+  - PodNetwork
+  nodeSelector: {}
+  frrConfigurationSelector:
+    matchLabels:
+      perf.ovn.org/use-for-advertisements: "true"
+  networkSelectors:
+  - networkSelectionType: ClusterUserDefinedNetworks
+    clusterUserDefinedNetworkSelector:
+      networkSelector:
+        matchLabels:
+          perf.ovn.org/cudn-idx: "{{ sub .Replica 1 }}"

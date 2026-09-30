@@ -1,0 +1,31 @@
+---
+# Layer3 CUDN advertised over BGP.
+# Name is kept under 16 characters: advertised CUDN names must be short because
+# the VRF name is derived from them.
+apiVersion: k8s.ovn.org/v1
+kind: ClusterUserDefinedNetwork
+metadata:
+  name: c{{ sub .Replica 1 }}
+  labels:
+    perf.ovn.org/advertised: "true"
+    perf.ovn.org/cudn-idx: "{{ sub .Replica 1 }}"
+spec:
+  namespaceSelector:
+    matchLabels:
+      kube-burner.io/cudn-idx: "{{ sub .Replica 1 }}"
+  network:
+    topology: Layer3
+    layer3:
+      role: Primary
+      subnets:
+      # 10.128.0.0/10 carved into /20 per network; see templates/bgp/README.md
+      - cidr: 10.{{ add 128 (div (sub .Replica 1) 16) }}.{{ mul (mod (sub .Replica 1) 16) 16 }}.0/{{ .cidrPrefix }}
+        hostSubnet: {{ .hostSubnet }}
+{{- if eq .transport "no-overlay" }}
+    # NoOverlay requires Layer3 Primary and a spec.network.noOverlay block;
+    # both are CEL-enforced on the CUDN CRD.
+    transport: NoOverlay
+    noOverlay:
+      outboundSNAT: Enabled
+      routing: Managed
+{{- end }}

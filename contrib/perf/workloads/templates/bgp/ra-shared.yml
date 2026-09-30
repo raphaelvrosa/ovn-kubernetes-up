@@ -1,0 +1,25 @@
+---
+# A single RouteAdvertisements selecting every advertised CUDN.
+#
+# The contrast with ra-per-cudn.yml is the point: this produces one generated
+# FRRConfiguration per node instead of one per (RA x node), but each object
+# carries the union of every selected network's prefixes. Run both and compare
+# object count against object size.
+apiVersion: k8s.ovn.org/v1
+kind: RouteAdvertisements
+metadata:
+  name: ra-shared
+spec:
+  targetVRF: {{ .targetVRF }}
+  advertisements:
+  - PodNetwork
+  nodeSelector: {}
+  frrConfigurationSelector:
+    matchLabels:
+      perf.ovn.org/use-for-advertisements: "true"
+  networkSelectors:
+  - networkSelectionType: ClusterUserDefinedNetworks
+    clusterUserDefinedNetworkSelector:
+      networkSelector:
+        matchLabels:
+          perf.ovn.org/advertised: "true"

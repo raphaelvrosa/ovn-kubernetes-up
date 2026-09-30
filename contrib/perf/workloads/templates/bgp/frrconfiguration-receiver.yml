@@ -1,0 +1,27 @@
+---
+# Base (source) FRRConfiguration selected by the RouteAdvertisements objects.
+# ovn-kubernetes uses this as the template for the per-node generated
+# FRRConfigurations named ovnk-generated-*.
+#
+# Shape follows test/e2e/testdata/routeadvertisements/frr-k8s/frrconf.yaml.tmpl.
+# One of these is enough for the density workloads; adding a second multiplies
+# the generated-object count, which is itself a worthwhile variant to run.
+apiVersion: frrk8s.metallb.io/v1beta1
+kind: FRRConfiguration
+metadata:
+  name: perf-base
+  namespace: frr-k8s-system
+  labels:
+    perf.ovn.org/use-for-advertisements: "true"
+spec:
+  nodeSelector: {}
+  bgp:
+    routers:
+    - asn: {{ .localASN }}
+      neighbors:
+      - address: {{ .peerIP }}
+        asn: {{ .peerASN }}
+        disableMP: true
+        toReceive:
+          allowed:
+            mode: all

@@ -1,0 +1,152 @@
+# ovn-kubernetes / OVN / OVS / frr-k8s metric profile.
+#
+# Companion to metrics.yml, which covers apiserver, etcd, cAdvisor, kubelet and
+# CRI-O only. Reference both from metric-endpoint*.yml rather than merging, so
+# existing platform baselines stay comparable.
+#
+# Most of this requires --metrics-enable-scale-metrics on ovnkube, and a
+# ServiceMonitor/PodMonitor that actually scrapes ovnkube. See
+# docs/perf-scale/bgp-evpn/02-metrics.md.
+#
+# NOT YET EXECUTED AGAINST A CLUSTER.
+
+# ---------------------------------------------------------------------------
+# Controller workqueues. The RouteAdvertisements sub-controllers appear with a
+# space-containing name label, e.g. "clustermanager routeadvertisements
+# controller" - hence the regex matchers throughout.
+# ---------------------------------------------------------------------------
+
+- query: sum(ovnkube_clustermanager_workqueue_depth) by (name) > 0
+  metricName: ovnkubeWorkqueueDepth
+
+# The key series for the ReconcileAll() fan-out hypothesis: on an idle cluster
+# this should be approximately zero.
+- query: sum(rate(ovnkube_clustermanager_workqueue_adds_total[2m])) by (name) > 0
+  metricName: ovnkubeWorkqueueAddRate
+
+- query: histogram_quantile(0.99, sum(rate(ovnkube_clustermanager_workqueue_queue_duration_seconds_bucket[2m])) by (name, le)) > 0
+  metricName: ovnkubeWorkqueueQueueDuration99th
+
+- query: histogram_quantile(0.99, sum(rate(ovnkube_clustermanager_workqueue_work_duration_seconds_bucket[2m])) by (name, le)) > 0
+  metricName: ovnkubeWorkqueueWorkDuration99th
+
+- query: max(ovnkube_clustermanager_workqueue_longest_running_processor_seconds) by (name) > 0
+  metricName: ovnkubeWorkqueueLongestProcessor
+
+- query: sum(rate(ovnkube_clustermanager_workqueue_retries_total[2m])) by (name) > 0
+  metricName: ovnkubeWorkqueueRetryRate
+
+# Node-side workqueues. Currently empty: ovnkube-node never registers the
+# workqueue metrics provider. Kept here so the series appears the day it does.
+- query: histogram_quantile(0.99, sum(rate(ovnkube_node_workqueue_work_duration_seconds_bucket[2m])) by (name, le)) > 0
+  metricName: ovnkubeNodeWorkqueueWorkDuration99th
+
+# ---------------------------------------------------------------------------
+# BGP / EVPN feature state
+# ---------------------------------------------------------------------------
+
+- query: sum(ovnkube_clustermanager_route_advertisement_condition) by (name, condition, status)
+  metricName: routeAdvertisementCondition
+
+- query: sum(ovnkube_clustermanager_vtep_condition) by (name, condition, status)
+  metricName: vtepCondition
+
+- query: sum(ovnkube_clustermanager_cluster_user_defined_networks) by (role, topology, transport)
+  metricName: clusterUserDefinedNetworks
+
+- query: histogram_quantile(0.99, sum(rate(ovnkube_clustermanager_udn_nad_sync_duration_seconds_bucket[2m])) by (le)) > 0
+  metricName: udnNadSyncDuration99th
+
+# ---------------------------------------------------------------------------
+# ovnkube-controller
+# ---------------------------------------------------------------------------
+
+- query: sum(ovnkube_controller_sync_duration_seconds) by (resource) > 0
+  metricName: ovnkubeControllerSyncDuration
+
+- query: sum(rate(ovnkube_controller_resource_update_total[2m])) by (name) > 0
+  metricName: ovnkubeControllerResourceUpdateRate
+
+- query: histogram_quantile(0.99, sum(rate(ovnkube_controller_pod_creation_latency_seconds_bucket[2m])) by (le)) > 0
+  metricName: podCreationLatency99th
+
+# Requires --metrics-enable-config-duration
+- query: histogram_quantile(0.99, sum(rate(ovnkube_controller_network_programming_duration_seconds_bucket[2m])) by (kind, le)) > 0
+  metricName: networkProgrammingDuration99th
+
+- query: histogram_quantile(0.99, sum(rate(ovnkube_node_cni_request_duration_seconds_bucket[2m])) by (command, le)) > 0
+  metricName: cniRequestDuration99th
+
+# ---------------------------------------------------------------------------
+# OVN databases, northd, ovn-controller
+# ---------------------------------------------------------------------------
+
+- query: ovn_db_db_size_bytes
+  metricName: ovnDBSizeBytes
+
+- query: ovn_db_jsonrpc_server_sessions
+  metricName: ovnDBSessions
+
+- query: sum(rate(ovn_db_txn_try_again[2m])) by (instance)
+  metricName: ovnDBTxnTryAgainRate
+
+- query: sum(rate(ovn_db_txn_error[2m])) by (instance)
+  metricName: ovnDBTxnErrorRate
+
+- query: ovn_northd_ovn_northd_loop_95th_percentile
+  metricName: northdLoop95th
+
+- query: ovn_northd_ovn_northd_loop_maximum
+  metricName: northdLoopMax
+
+- query: ovn_controller_flow_installation_95th_percentile
+  metricName: ovnControllerFlowInstallation95th
+
+- query: ovn_controller_flow_generation_95th_percentile
+  metricName: ovnControllerFlowGeneration95th
+
+- query: ovn_controller_integration_bridge_openflow_total
+  metricName: integrationBridgeOpenflowTotal
+
+- query: ovs_vswitchd_dp_flows_total
+  metricName: ovsDatapathFlows
+
+- query: ovs_vswitchd_bridge_flows_total
+  metricName: ovsBridgeFlows
+
+# ---------------------------------------------------------------------------
+# frr-k8s and FRR
+# ---------------------------------------------------------------------------
+
+- query: frrk8s_bgp_session_up
+  metricName: bgpSessionUp
+
+- query: sum(frrk8s_bgp_announced_prefixes_total) by (vrf, peer)
+  metricName: bgpAnnouncedPrefixes
+
+- query: sum(frrk8s_bgp_received_prefixes_total) by (vrf, peer)
+  metricName: bgpReceivedPrefixes
+
+- query: sum(rate(frrk8s_bgp_updates_total[2m])) by (vrf, peer) > 0
+  metricName: bgpUpdateRate
+
+- query: changes(frrk8s_bgp_session_up[10m]) > 0
+  metricName: bgpSessionFlaps
+
+- query: histogram_quantile(0.99, sum(rate(controller_runtime_reconcile_duration_seconds_bucket{job=~".*frr.*"}[2m])) by (controller, le)) > 0
+  metricName: frrk8sReconcileDuration99th
+
+# The exporter shells out to vtysh per scrape; at high VRF counts the scrape is
+# itself a bottleneck and contends with bgpd. A cost metric, not a value metric.
+- query: scrape_duration_seconds{job=~".*frr.*"}
+  metricName: frrScrapeDuration
+
+# ---------------------------------------------------------------------------
+# etcd object pressure from the generated CRs
+# ---------------------------------------------------------------------------
+
+- query: apiserver_storage_objects{resource=~"frrconfigurations.*|frrnodestates.*|bgpsessionstates.*|routeadvertisements.*|clusteruserdefinednetworks.*|vteps.*"}
+  metricName: bgpCRObjectCount
+
+- query: etcd_mvcc_db_total_size_in_bytes
+  metricName: etcdDBSizeBytes

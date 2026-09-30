@@ -1,0 +1,111 @@
+---
+# BGP RouteAdvertisements density.
+#
+# NOT YET EXECUTED AGAINST A CLUSTER. See docs/perf-scale/bgp-evpn/04-ci-kube-burner.md.
+#
+# Measures the control-plane cost of advertising many networks. The headline
+# derived quantity is the generated FRRConfiguration count:
+#   generated = RAs x nodes x matching source FRRConfigurations
+# Run this with and without EnableDynamicUDNAllocation and compare.
+#
+# Scale ladder: raise jobIterations to 10 / 100 / 400 / 1000.
+global:
+  measurements:
+    - name: podLatency
+    - name: pprof
+      pprofInterval: 1m
+      pprofDirectory: pprof-data
+      pprofTargets:
+      - name: ovnkube-controller
+        namespace: "ovn-kubernetes"
+        labelSelector: {app: ovnkube-node}
+        url: http://localhost:9410/debug/pprof/profile?seconds=30
+      - name: ovnkube-control-plane
+        namespace: "ovn-kubernetes"
+        labelSelector: {name: ovnkube-control-plane}
+        url: http://localhost:9411/debug/pprof/profile?seconds=30
+      - name: ovnkube-controller-heap
+        namespace: "ovn-kubernetes"
+        labelSelector: {app: ovnkube-node}
+        url: http://localhost:9410/debug/pprof/heap
+      - name: ovnkube-control-plane-heap
+        namespace: "ovn-kubernetes"
+        labelSelector: {name: ovnkube-control-plane}
+        url: http://localhost:9411/debug/pprof/heap
+
+jobs:
+# The base FRRConfiguration every generated object derives from. Created once,
+# before anything else, because an RA with no matching source config generates
+# nothing and the run would silently measure an empty path.
+- name: bgp-base-frrconfig
+  jobIterations: 1
+  qps: 10
+  burst: 10
+  waitWhenFinished: true
+  cleanup: true
+  objects:
+    - objectTemplate: workloads/templates/bgp/frrconfiguration-receiver.yml
+      replicas: 1
+      inputVars:
+        localASN: 64512
+        peerASN: 64512
+        # Replace with the fabric peer address for the target environment.
+        peerIP: "172.18.0.5"
+
+- name: bgp-ra-density-networks
+  jobIterations: 1
+  qps: 10
+  burst: 10
+  namespacedIterations: false
+  waitWhenFinished: true
+  cleanup: true
+  objects:
+    - objectTemplate: workloads/templates/bgp/ns.yml
+      replicas: 100
+
+    - objectTemplate: workloads/templates/bgp/cudn_l3_advertised.yml
+      replicas: 100
+      inputVars:
+        cidrPrefix: 20
+        hostSubnet: 26
+        transport: "overlay"
+      waitOptions:
+        customStatusPaths:
+        - key: '(.conditions.[] | select(.type == "NetworkCreated")).status'
+          value: "True"
+
+    # One RA per CUDN: the fan-out worst case. Swap for ra-shared.yml (replicas: 1)
+    # to measure the few-objects / large-objects shape instead.
+    - objectTemplate: workloads/templates/bgp/ra-per-cudn.yml
+      replicas: 100
+      inputVars:
+        targetVRF: "auto"
+      waitOptions:
+        customStatusPaths:
+        - key: '(.conditions.[] | select(.type == "Accepted")).status'
+          value: "True"
+
+# Pods on the advertised networks. Kept modest: a /20 with hostSubnet 26 gives
+# ~60 usable addresses per node. For high pod density run evpn-pod-density.yml
+# or override cidrPrefix/hostSubnet and drop the network count.
+- name: bgp-ra-density-pods
+  jobIterations: 100
+  qps: 10
+  burst: 10
+  namespacedIterations: true
+  namespace: bgp-ra-density-networks
+  waitWhenFinished: true
+  cleanup: false
+  preLoadImages: true
+  preLoadPeriod: 5m
+  measurements:
+    - name: podLatency
+  objects:
+    - objectTemplate: workloads/templates/udn-density/service.yml
+      replicas: 1
+
+    - objectTemplate: workloads/templates/udn-density/deployment-server.yml
+      replicas: 1
+
+    - objectTemplate: workloads/templates/udn-density/deployment-client.yml
+      replicas: 1

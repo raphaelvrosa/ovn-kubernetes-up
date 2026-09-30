@@ -1,0 +1,20 @@
+---
+# Layer2 CUDN advertised over BGP. The whole subnet is advertised anycast from
+# every node, unlike Layer3 where each node advertises its own host subnet.
+apiVersion: k8s.ovn.org/v1
+kind: ClusterUserDefinedNetwork
+metadata:
+  name: c{{ sub .Replica 1 }}
+  labels:
+    perf.ovn.org/advertised: "true"
+    perf.ovn.org/cudn-idx: "{{ sub .Replica 1 }}"
+spec:
+  namespaceSelector:
+    matchLabels:
+      kube-burner.io/cudn-idx: "{{ sub .Replica 1 }}"
+  network:
+    topology: Layer2
+    layer2:
+      role: Primary
+      subnets:
+      - 10.{{ add 128 (div (sub .Replica 1) 16) }}.{{ mul (mod (sub .Replica 1) 16) 16 }}.0/{{ .cidrPrefix }}
