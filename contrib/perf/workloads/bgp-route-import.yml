@@ -1,0 +1,72 @@
+---
+# BGP route import.
+#
+# NOT YET EXECUTED AGAINST A CLUSTER.
+#
+# Measures the node-agent cost of importing fabric routes into OVN logical
+# router static routes. routeimport does a full netlink RTPROT_BGP dump plus a
+# full LRSR predicate scan plus a set-diff per network per 500ms debounce
+# window, so cost is O(routes + LRSRs) per network per window.
+#
+# The routes are NOT created by kube-burner. They are announced from the fabric
+# side by the hook below; kube-burner only creates the networks that receive
+# them and provides the measurement window. Ladder: 1k / 10k / 100k / 500k.
+global:
+  measurements:
+    - name: pprof
+      pprofInterval: 30s
+      pprofDirectory: pprof-data
+      pprofTargets:
+      - name: ovnkube-controller
+        namespace: "ovn-kubernetes"
+        labelSelector: {app: ovnkube-node}
+        url: http://localhost:9410/debug/pprof/profile?seconds=30
+      - name: ovnkube-controller-heap
+        namespace: "ovn-kubernetes"
+        labelSelector: {app: ovnkube-node}
+        url: http://localhost:9410/debug/pprof/heap
+
+jobs:
+- name: bgp-route-import-base
+  jobIterations: 1
+  qps: 10
+  burst: 10
+  waitWhenFinished: true
+  cleanup: true
+  objects:
+    - objectTemplate: workloads/templates/bgp/frrconfiguration-receiver.yml
+      replicas: 1
+      inputVars:
+        localASN: 64512
+        peerASN: 64512
+        peerIP: "172.18.0.5"
+
+- name: bgp-route-import-networks
+  jobIterations: 1
+  qps: 10
+  burst: 10
+  waitWhenFinished: true
+  cleanup: true
+  # Announce the synthetic prefixes from the fabric container once the receiving
+  # networks exist, then withdraw and re-announce them to exercise the largest
+  # single transaction routeimport will ever build. See hooks/inject-routes.sh.
+  beforeCleanup: "hooks/collect-bgp-state.sh route-import-after"
+  objects:
+    - objectTemplate: workloads/templates/bgp/ns.yml
+      replicas: 20
+
+    - objectTemplate: workloads/templates/bgp/cudn_l3_advertised.yml
+      replicas: 20
+      inputVars:
+        cidrPrefix: 20
+        hostSubnet: 26
+        transport: "no-overlay"
+
+    - objectTemplate: workloads/templates/bgp/ra-per-cudn.yml
+      replicas: 20
+      inputVars:
+        targetVRF: "auto"
+      waitOptions:
+        customStatusPaths:
+        - key: '(.conditions.[] | select(.type == "Accepted")).status'
+          value: "True"

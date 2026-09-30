@@ -1,0 +1,37 @@
+---
+# Layer2 CUDN with EVPN transport.
+#
+# Each MAC-VRF and each IP-VRF consumes one VLAN on the Single VXLAN Device.
+# The ceiling is 4094 per VTEP: with withIPVRF=true this template consumes two
+# per network, so 1000 networks sits at roughly half the hard limit. Crossing it
+# requires multiple VTEPs, not a bigger number here.
+#
+# VNI ranges mirror test/e2e/allocators/bgp.go rather than defining new ones.
+apiVersion: k8s.ovn.org/v1
+kind: ClusterUserDefinedNetwork
+metadata:
+  name: c{{ sub .Replica 1 }}
+  labels:
+    perf.ovn.org/advertised: "true"
+    perf.ovn.org/evpn: "true"
+    perf.ovn.org/cudn-idx: "{{ sub .Replica 1 }}"
+spec:
+  namespaceSelector:
+    matchLabels:
+      kube-burner.io/cudn-idx: "{{ sub .Replica 1 }}"
+  network:
+    topology: Layer2
+    layer2:
+      role: Primary
+      subnets:
+      - 10.{{ add 128 (div (sub .Replica 1) 16) }}.{{ mul (mod (sub .Replica 1) 16) 16 }}.0/{{ .cidrPrefix }}
+    transport: EVPN
+    evpn:
+      vtep: {{ .vtepName }}
+      macVRF:
+        # Route target is auto-derived to <ASN>:<VNI> when omitted.
+        vni: {{ add .macVNIBase (sub .Replica 1) }}
+{{- if .withIPVRF }}
+      ipVRF:
+        vni: {{ add .ipVNIBase (sub .Replica 1) }}
+{{- end }}

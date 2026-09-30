@@ -1,0 +1,83 @@
+# kube-burner alert profile for the BGP / EVPN lanes.
+#
+# Pass with --alert-profile alerts-bgp.yml. severity: error sets exit code 1.
+#
+# NOT YET EXECUTED AGAINST A CLUSTER, and everything below is deliberately
+# severity: warning. Promote to error only once two consecutive nightly runs
+# have established a baseline - an alert profile that fires on run one teaches
+# people to ignore it.
+#
+# Thresholds trace to the SLI table in
+# docs/perf-scale/bgp-evpn/01-methodology.md.
+
+# --- Session health -------------------------------------------------------
+# A session that never came up invalidates the whole run, so this one is the
+# first candidate for promotion to error.
+- expr: count(frrk8s_bgp_session_up == 0) > 0
+  description: "{{$labels.peer}} in VRF {{$labels.vrf}}: BGP session not established"
+  severity: warning
+
+- expr: count(changes(frrk8s_bgp_session_up[10m]) > 4) > 0
+  description: "{{$labels.peer}} in VRF {{$labels.vrf}}: BGP session flapping"
+  severity: warning
+
+# --- Control-plane cost ---------------------------------------------------
+# The trap for the ReconcileAll() fan-out hypothesis: with no intent changes,
+# BGP control-plane CPU should be approximately zero.
+- expr: avg_over_time(sum(irate(container_cpu_usage_seconds_total{container="ovnkube-cluster-manager"}[2m]))[10m:]) > 1
+  description: "ovnkube-cluster-manager sustained above 1 core: {{$value}}"
+  severity: warning
+
+- expr: histogram_quantile(0.99, sum(rate(ovnkube_clustermanager_workqueue_work_duration_seconds_bucket{name=~"clustermanager routeadvertisements.*"}[5m])) by (le)) > 10
+  description: "RouteAdvertisements reconcile p99 above 10s: {{$value}}"
+  severity: warning
+
+- expr: histogram_quantile(0.99, sum(rate(ovnkube_clustermanager_workqueue_queue_duration_seconds_bucket{name=~"clustermanager routeadvertisements.*"}[5m])) by (le)) > 60
+  description: "RouteAdvertisements queue wait p99 above 60s - likely Threadiness: 1 starvation: {{$value}}"
+  severity: warning
+
+- expr: max(ovnkube_clustermanager_workqueue_depth{name=~"clustermanager routeadvertisements.*"}) > 500
+  description: "RouteAdvertisements workqueue backlog above 500: {{$value}}"
+  severity: warning
+
+# --- Acceptance -----------------------------------------------------------
+- expr: count(ovnkube_clustermanager_route_advertisement_condition{condition="Accepted",status="false"} == 1) > 0
+  description: "RouteAdvertisements {{$labels.name}} not Accepted at end of run"
+  severity: warning
+
+- expr: count(ovnkube_clustermanager_vtep_condition{condition="Accepted",status="false"} == 1) > 0
+  description: "VTEP {{$labels.name}} not Accepted at end of run"
+  severity: warning
+
+# --- OVN / OVS ------------------------------------------------------------
+- expr: sum(rate(ovn_db_txn_try_again[5m])) > 1
+  description: "OVN DB transaction retries above 1/s - contention: {{$value}}"
+  severity: warning
+
+- expr: sum(rate(ovn_db_txn_error[5m])) > 0
+  description: "OVN DB transaction errors: {{$value}}"
+  severity: warning
+
+- expr: ovn_northd_ovn_northd_loop_95th_percentile > 5
+  description: "ovn-northd loop p95 above 5s: {{$value}}"
+  severity: warning
+
+# --- Observability cost ---------------------------------------------------
+# The rare case where the monitoring is itself the subject of the benchmark:
+# the frr-k8s exporter shells out to vtysh and contends with bgpd.
+- expr: max(scrape_duration_seconds{job=~".*frr.*"}) > 15
+  description: "frr-k8s metrics scrape above 15s - exporter is the bottleneck: {{$value}}"
+  severity: warning
+
+- expr: count(up{job=~".*frr.*"} == 0) > 0
+  description: "frr-k8s metrics target down - scrape likely timing out"
+  severity: warning
+
+# --- etcd footprint -------------------------------------------------------
+- expr: max(apiserver_storage_objects{resource=~"frrconfigurations.*"}) > 100000
+  description: "Generated FRRConfiguration count above 100k: {{$value}}"
+  severity: warning
+
+- expr: max(etcd_mvcc_db_total_size_in_bytes) > 4e9
+  description: "etcd database above 4GB: {{$value}}"
+  severity: warning

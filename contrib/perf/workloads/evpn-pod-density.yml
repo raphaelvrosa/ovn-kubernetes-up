@@ -1,0 +1,111 @@
+---
+# EVPN pod density.
+#
+# NOT YET EXECUTED AGAINST A CLUSTER.
+#
+# The complement of evpn-density.yml: few networks, many pods.
+#
+# This is the workload that exposes the single most important scale difference
+# between the two features. Plain route advertisements produce prefixes
+# proportional to nodes x networks. EVPN produces Type-2 MAC/IP routes
+# proportional to PODS, because each pod IP becomes a permanent neighbour entry
+# plus a static FDB entry, and zebra originates a Type-2 route from each.
+#
+# At 200 pods per node the fabric carries 200 x nodes Type-2 routes. That is a
+# fabric-sizing constraint, not only an ovn-kubernetes one.
+#
+# Networks are given a /16 so pods per node is not capped by the subnet.
+global:
+  measurements:
+    - name: podLatency
+    - name: pprof
+      pprofInterval: 1m
+      pprofDirectory: pprof-data
+      pprofTargets:
+      - name: ovnkube-controller
+        namespace: "ovn-kubernetes"
+        labelSelector: {app: ovnkube-node}
+        url: http://localhost:9410/debug/pprof/profile?seconds=30
+      - name: ovnkube-controller-heap
+        namespace: "ovn-kubernetes"
+        labelSelector: {app: ovnkube-node}
+        url: http://localhost:9410/debug/pprof/heap
+
+jobs:
+- name: evpn-pod-base
+  jobIterations: 1
+  qps: 10
+  burst: 10
+  waitWhenFinished: true
+  cleanup: true
+  objects:
+    - objectTemplate: workloads/templates/bgp/frrconfiguration-receiver.yml
+      replicas: 1
+      inputVars:
+        localASN: 65000
+        peerASN: 65001
+        peerIP: "172.18.0.5"
+
+    - objectTemplate: workloads/templates/bgp/vtep.yml
+      replicas: 1
+      inputVars:
+        vtepName: "perf-vtep"
+        vtepCIDR: "100.64.0.0/24"
+      waitOptions:
+        customStatusPaths:
+        - key: '(.conditions.[] | select(.type == "Accepted")).status'
+          value: "True"
+
+- name: evpn-pod-density-networks
+  jobIterations: 1
+  qps: 10
+  burst: 10
+  waitWhenFinished: true
+  cleanup: true
+  objects:
+    - objectTemplate: workloads/templates/bgp/ns.yml
+      replicas: 5
+
+    - objectTemplate: workloads/templates/bgp/cudn_evpn_l2.yml
+      replicas: 5
+      inputVars:
+        # /16 so the pod count is bounded by the node, not the subnet.
+        cidrPrefix: 16
+        vtepName: "perf-vtep"
+        macVNIBase: 100
+        ipVNIBase: 10000
+        withIPVRF: false
+
+    - objectTemplate: workloads/templates/bgp/ra-per-cudn.yml
+      replicas: 5
+      inputVars:
+        targetVRF: "auto"
+      waitOptions:
+        customStatusPaths:
+        - key: '(.conditions.[] | select(.type == "Accepted")).status'
+          value: "True"
+
+- name: evpn-pod-density-pods
+  jobIterations: 5
+  qps: 20
+  burst: 20
+  namespacedIterations: true
+  namespace: evpn-pod-density-networks
+  waitWhenFinished: true
+  cleanup: false
+  preLoadImages: true
+  preLoadPeriod: 5m
+  measurements:
+    - name: podLatency
+  # Type-2 route count at the peer is the number this workload exists to
+  # produce, and nothing in-cluster can observe it.
+  beforeCleanup: "hooks/collect-bgp-state.sh evpn-pod-density"
+  objects:
+    - objectTemplate: workloads/templates/udn-density/service.yml
+      replicas: 1
+
+    - objectTemplate: workloads/templates/udn-density/deployment-server.yml
+      replicas: 40
+
+    - objectTemplate: workloads/templates/udn-density/deployment-client.yml
+      replicas: 40

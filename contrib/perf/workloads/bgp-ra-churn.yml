@@ -1,0 +1,74 @@
+---
+# BGP RouteAdvertisements churn.
+#
+# NOT YET EXECUTED AGAINST A CLUSTER.
+#
+# The incremental protocol: the interesting number for RouteAdvertisements is
+# almost never cold start. ReconcileAll() re-enqueues every RA on any
+# Node / NAD / FRRConfiguration / UplinkState event, so steady-state cost is a
+# function of unrelated cluster churn. This workload creates that churn.
+#
+# Also the leak detector: watch generated FRRConfiguration count and NAD
+# annotations return to baseline after each cycle. They should.
+global:
+  measurements:
+    - name: podLatency
+    - name: pprof
+      pprofInterval: 1m
+      pprofDirectory: pprof-data
+      pprofTargets:
+      - name: ovnkube-control-plane
+        namespace: "ovn-kubernetes"
+        labelSelector: {name: ovnkube-control-plane}
+        url: http://localhost:9411/debug/pprof/profile?seconds=30
+      - name: ovnkube-control-plane-heap
+        namespace: "ovn-kubernetes"
+        labelSelector: {name: ovnkube-control-plane}
+        url: http://localhost:9411/debug/pprof/heap
+
+jobs:
+- name: bgp-churn-base-frrconfig
+  jobIterations: 1
+  qps: 10
+  burst: 10
+  waitWhenFinished: true
+  cleanup: true
+  objects:
+    - objectTemplate: workloads/templates/bgp/frrconfiguration-receiver.yml
+      replicas: 1
+      inputVars:
+        localASN: 64512
+        peerASN: 64512
+        peerIP: "172.18.0.5"
+
+- name: bgp-ra-churn
+  jobIterations: 50
+  qps: 10
+  burst: 10
+  namespacedIterations: true
+  waitWhenFinished: true
+  cleanup: true
+  churn: true
+  churnCycles: 10
+  churnPercent: 20
+  churnDuration: 30m
+  churnDelay: 2m
+  objects:
+    - objectTemplate: workloads/templates/bgp/ns.yml
+      replicas: 1
+
+    - objectTemplate: workloads/templates/bgp/cudn_l3_advertised.yml
+      replicas: 1
+      inputVars:
+        cidrPrefix: 20
+        hostSubnet: 26
+        transport: "overlay"
+
+    - objectTemplate: workloads/templates/bgp/ra-per-cudn.yml
+      replicas: 1
+      inputVars:
+        targetVRF: "auto"
+      waitOptions:
+        customStatusPaths:
+        - key: '(.conditions.[] | select(.type == "Accepted")).status'
+          value: "True"

@@ -212,6 +212,15 @@ nav:
       - Open vSwitch: observability/metrics/ovs.md
     - SDN Dashboard: observability/sdn-dashboard.md
     - OVN observability: observability/ovn-observability.md
+  - Performance and Scale:
+    - BGP and EVPN:
+      - perf-scale/bgp-evpn/index.md
+      - Glossary: perf-scale/bgp-evpn/glossary.md
+      - Benchmarking Methodology: perf-scale/bgp-evpn/01-methodology.md
+      - Metrics and Instrumentation: perf-scale/bgp-evpn/02-metrics.md
+      - Bottleneck Analysis: perf-scale/bgp-evpn/03-bottlenecks.md
+      - CI and kube-burner: perf-scale/bgp-evpn/04-ci-kube-burner.md
+      - Roadmap: perf-scale/bgp-evpn/05-roadmap.md
   - Enhancement Proposals:
     - okeps/index.md
     # - FeatureName: okeps/<filename.md>

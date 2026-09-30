@@ -1,0 +1,16 @@
+---
+# Cluster-scoped VTEP. Unmanaged mode assumes the VTEP IP is already configured
+# as a primary address on a dedicated device on each node; Managed mode is not
+# implemented yet.
+#
+# VTEP status carries a per-node IP map, which docs/okeps/okep-5088-evpn.md
+# flags as non-scaling at ~5000 nodes. Measure this object's size across the
+# node ladder.
+apiVersion: k8s.ovn.org/v1
+kind: VTEP
+metadata:
+  name: {{ .vtepName }}
+spec:
+  cidrs:
+  - {{ .vtepCIDR }}
+  mode: Unmanaged
