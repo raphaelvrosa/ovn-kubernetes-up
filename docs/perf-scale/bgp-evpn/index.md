@@ -96,6 +96,7 @@ Numbers 4, 5 and 8 are ceilings rather than slopes: they do not degrade, they st
 | [03 — Bottleneck Analysis](03-bottlenecks.md) | Twelve ranked hypotheses with mechanism, confirming metric, candidate fix, and which project owns each |
 | [04 — CI and kube-burner](04-ci-kube-burner.md) | Harness design, what stock kube-burner already does, genuine upstream asks, kind's ceiling |
 | [05 — Roadmap](05-roadmap.md) | Six phases with goals, activities, deliverables, exit criteria, risks and success criteria |
+| [06 — Local Lab](06-local-lab.md) | Hands-on kind walkthrough: bring up BGP and EVPN, drive RAs by hand, read FRR, enable metrics, iterate on code |
 
 ---
 
@@ -109,6 +110,7 @@ Numbers 4, 5 and 8 are ceilings rather than slopes: they do not degrade, they st
 | Engineer adding instrumentation | [02](02-metrics.md) table 2 — each row is one small PR |
 | Planning a sprint | [05](05-roadmap.md), then [03](03-bottlenecks.md) for sizing |
 | Reviewing the approach | This page, then [01](01-methodology.md) |
+| **New to the feature** | **[06](06-local-lab.md) first** — build the thing in kind and watch it work before reading about how it fails |
 
 ---
 
