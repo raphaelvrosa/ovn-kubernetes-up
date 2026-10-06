@@ -59,8 +59,10 @@ and `ovnkube_clustermanager_workqueue_depth` returns data in the lane's Promethe
 
 ### Activity 0.2: Enable the metrics flags
 
-`--metrics-enable-scale-metrics` and `--metrics-enable-config-duration` in the perf lane's
-ovnkube deployment. See [02 required flags](02-metrics.md#required-flags).
+One line: `OVN_METRICS_SCALE_ENABLE: "true"` in the `performance-test.yml` env block, which
+becomes `--metrics-enable-scale` by the time it reaches ovnkube. Optionally
+`OVNKUBE_CONFIG_DURATION_ENABLE` too. `--metrics-enable-pprof` is already unconditional in the
+kind image and needs nothing. See [02 required flags](02-metrics.md#required-flags).
 
 **Deliverable**: The full workqueue metric family present for all controllers.
 

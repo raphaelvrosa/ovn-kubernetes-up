@@ -93,9 +93,13 @@ service, plus whatever relabeling the kind deployment needs.
 
 ### 2. Turn on the flags
 
-`--metrics-enable-scale-metrics` and `--metrics-enable-config-duration` in the perf lane's
-ovnkube deployment. See [02 required flags](02-metrics.md#required-flags). Without the first
-one there are no workqueue metrics, which is most of what [03](03-bottlenecks.md) needs.
+Add `OVN_METRICS_SCALE_ENABLE: "true"` to the env block of `performance-test.yml`. That is the
+whole change — `contrib/kind-common.sh:172` reads it, `kind-helm.sh:714` passes it to helm, and
+`dist/images/ovnkube.sh:1205` turns it into `--metrics-enable-scale`. Without it there are no
+workqueue metrics, which is most of what [03](03-bottlenecks.md) needs.
+
+`--metrics-enable-pprof` needs nothing: it is unconditional in the kind image. See
+[02 required flags](02-metrics.md#required-flags).
 
 Consider lowering `--collection-interval` below its 30 s default for short runs.
 
@@ -136,18 +140,79 @@ Four new rows in `performance-test.yml`, following the existing row shape exactl
 `routeadvertisements` key so the already-plumbed env vars activate:
 
 ```yaml
-- {"target": "bgp", perf-test: "bgp-ra-density", "routeadvertisements": "advertise-all",
+- {"target": "bgp", perf-test: "bgp-ra-density", "routeadvertisements": "advertise-cudn",
    "gateway-mode": "local", "ipfamily": "ipv4", "disable-snat-multiple-gws": "noSnatGW",
-   "second-bridge": "1br", "ic": "ic-single-node-zones", "num-workers": "3",
+   "second-bridge": "1br", "ic": "ic-single-node-zones", "num-workers": "8",
    "network-segmentation": "enable-network-segmentation"}
 ```
 
-plus `bgp-ra-churn`, `evpn-density` and `evpn-pod-density`. `ENABLE_EVPN` needs adding to the
-env block alongside the existing three; `ADVERTISED_UDN_ISOLATION_MODE` is already there and
-becomes the strict-vs-loose axis for free.
+Any non-empty `routeadvertisements` value sets `ENABLE_ROUTE_ADVERTISEMENTS`; only the literal
+`advertise-default` also sets `ADVERTISE_DEFAULT_NETWORK`. The BGP density workloads advertise
+their own CUDNs, so `advertise-cudn` is deliberately **not** `advertise-default` — otherwise
+the default pod network is advertised too and the generated-object counts no longer match the
+derivation.
+
+Add `bgp-ra-churn`, `evpn-density` and `evpn-pod-density` the same way. `ENABLE_EVPN` needs
+adding to the env block alongside the existing three; `ADVERTISED_UDN_ISOLATION_MODE` is
+already there and becomes the strict-vs-loose axis for free.
+
+!!! warning "Two naming traps"
+    **The artifact allowlists.** The **Generate performance report**, **Upload performance
+    report**, **Upload pprof data** and **Upload performance test data** steps are each gated
+    on an `if:` expression listing the seven existing workload names explicitly. A new
+    `perf-test` value runs kube-burner normally and then **silently discards the pprof
+    profiles and the report** unless it is added to all four. This is the easiest way to
+    waste a two-hour run.
+
+    **The podLatency filename.** `generate_perf_report.py` loads
+    `podLatencyMeasurement-<workload>.json` where `<workload>` is the `perf-test` matrix
+    value. So the kube-burner **job** that carries the `podLatency` measurement must be named
+    exactly after the workload file — `bgp-ra-density`, not `bgp-ra-density-pods`. Getting it
+    wrong is not fatal (`load_json_file` returns `[]` on a miss) but silently empties the pod
+    latency section of the report.
 
 Run these **nightly only**, not per-PR. Four extra lanes on a 240-minute timeout is not a
 per-PR cost anyone will thank you for.
+
+---
+
+## Minimum viable first run
+
+Before any of P0's observability work, a 10-node kind lane can already identify candidate
+bottlenecks, because **pprof is unconditional in the kind image**
+([02 required flags](02-metrics.md#required-flags)). One PR, four edits:
+
+| # | Edit | File |
+|---|---|---|
+| 1 | Matrix row for `bgp-ra-density` with `routeadvertisements` set and `num-workers` raised | `.github/workflows/performance-test.yml` |
+| 2 | `OVN_METRICS_SCALE_ENABLE: "true"` in the env block | same |
+| 3 | Add the new `perf-test` name to all four artifact `if:` allowlists | same |
+| 4 | Nothing — the workload and templates are already in `contrib/perf/` | — |
+
+Instrumentation rides along for free: the lane builds its image from PR HEAD via the
+`build-pr` job and the `test-image-pr` artifact, so any metric or log line added in the same
+branch is in the image the benchmark runs against. There is no separate "deploy an
+instrumented build" step to design.
+
+### Push CUDN count, not node count
+
+Kind will not give you 500 nodes, but **most of the top hypotheses do not need them**:
+
+| Hypothesis | Reachable at ~10 nodes? |
+|---|---|
+| [1 `ReconcileAll()` fan-out](03-bottlenecks.md#1-reconcileall-fan-out) | Yes — cost is per-RA; scale RA count |
+| [2 `generateFRRConfigurations`](03-bottlenecks.md#2-generatefrrconfigurations-recomputes-everything) | Yes — visible in any CPU profile |
+| [3 Object explosion](03-bottlenecks.md#3-generated-frrconfiguration-object-explosion) | Partly — 1000 CUDNs x 10 nodes is 10,000 objects, enough for the slope |
+| [4 `FRRNodeState` size](03-bottlenecks.md#4-frrnodestatestatusrunningconfig-size) | **Yes** — grows with *VRF* count, not node count. 1000 CUDNs means 1000 VRFs on each of 10 nodes |
+| [5 `BGPSessionState` cardinality](03-bottlenecks.md#5-bgpsessionstate-cardinality) | Partly — nodes x peers x VRFs, and only VRFs are under your control |
+| [12 Threadiness starvation](03-bottlenecks.md#12-hardcoded-concurrency-and-rate-limiting) | Yes |
+
+Hypothesis 4 is the one to measure first: it is a pure VRF-count ceiling, fully reachable at
+10 nodes, and it has the longest upstream lead time of anything in the plan.
+
+**Sizing caution.** 10 workers plus 2 infra nodes plus the control plane is 13 kind nodes on a
+32-core / 128 GB runner against a 45-minute `kind setup` timeout; the existing lanes use 3.
+Start at 6-8 workers and raise it once one run is green.
 
 ---
 

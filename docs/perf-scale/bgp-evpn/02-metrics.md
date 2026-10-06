@@ -148,15 +148,20 @@ These cannot reasonably become metrics, and should be captured by kube-burner ho
 
 ## Required flags
 
-Without these, most of table 1 does not exist. All must be set in the perf lane.
+Without these, most of table 1 does not exist.
 
-| Flag | Effect | Default |
+| Flag | Effect | In the kind perf lane |
 |---|---|---|
-| `--metrics-enable-scale-metrics` | **Registers all workqueue metrics** and several latency histograms. Gates the single most important family for this work | off |
-| `--metrics-enable-config-duration` | Registers `network_programming_duration_seconds` | off |
-| `--metrics-enable-pprof` | Serves `/debug/pprof/*` on the metrics address. Already relied on by the existing workloads' `pprof` measurement | off |
+| `--metrics-enable-scale` | **Registers all workqueue metrics** and several latency histograms. Gates the single most important family for this work | **Off, but free to turn on**: set `OVN_METRICS_SCALE_ENABLE: "true"` in the workflow env block. `contrib/kind-common.sh:172` reads it, `kind-helm.sh:714` passes it to helm as `global.enableMetricsScale`, and `dist/images/ovnkube.sh:1205` turns it into the flag. No deployment change needed |
+| `--metrics-enable-config-duration` | Registers `network_programming_duration_seconds` | Off; gated on `OVNKUBE_CONFIG_DURATION_ENABLE` (`ovnkube.sh:292`) |
+| `--metrics-enable-pprof` | Serves `/debug/pprof/*` on the metrics address | **Already on, unconditionally** — `ovnkube.sh:1312` for ovnkube-controller and `:2550` for ovnkube-node. This is why the existing workloads' `pprof` measurement works, and why **profiling needs none of P0** |
 | `--collection-interval` | How often OVS/OVN values are refreshed into the registry, default 30 s. Lower it for short runs or the scrape samples stale values | 30s |
 | `--db-txn-timeout` | Default 100 s. The config comment notes it "may be useful to increase for high-scale clusters". Record its value with every result | 100s |
+
+The practical consequence: **a CPU profile of ovnkube-cluster-manager under BGP load requires
+no instrumentation, no ServiceMonitor and no flags.** That makes a first bottleneck hunt much
+cheaper than the [roadmap's](05-roadmap.md) phase ordering suggests — see
+[04](04-ci-kube-burner.md#minimum-viable-first-run).
 
 ---
 
@@ -245,7 +250,7 @@ early-warning signal that does not need a cluster.
 | Defect | Impact | Fix |
 |---|---|---|
 | Workqueue histograms use `prometheus.ExponentialBuckets(10e-3, 10, 6)` — 10 ms to 1000 s in **six** buckets | p99 estimates are near-useless; a reconcile taking 200 ms and one taking 900 ms land in the same bucket | Widen to ~12 buckets with a base of 2 or 3. `pkg/metrics/workqueue.go:57,63` |
-| ovnkube-node never calls `registerWorkqueueMetrics` | No queue visibility on the node side at all, where `routeimport` and the EVPN controllers live | Register it in the node metrics path, gated on the same `--metrics-enable-scale-metrics` |
+| ovnkube-node never calls `registerWorkqueueMetrics` | No queue visibility on the node side at all, where `routeimport` and the EVPN controllers live | Register it in the node metrics path, gated on the same `--metrics-enable-scale` |
 | `Threadiness: 1` at 30+ call sites with no config knob | Queue-duration metrics will show starvation with no way to respond except a code change | Plumb threadiness through config; see [bottleneck 12](03-bottlenecks.md#12-hardcoded-concurrency-and-rate-limiting) |
 | The RA sub-controllers pass `workqueue.DefaultTypedControllerRateLimiter` rather than the framework's `DefaultRateLimiter` | A 10 qps / 100 burst token bucket applies on top of exponential backoff, capping reconcile throughput independently of worker count | Record which limiter is in effect with every result; consider aligning with the framework default |
 | Controller `name` labels contain spaces (`"clustermanager routeadvertisements controller"`) | PromQL needs quoting or regex matching; awkward in dashboards | Cosmetic, low priority, but worth knowing before writing queries |

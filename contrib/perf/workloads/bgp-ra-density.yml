@@ -88,7 +88,10 @@ jobs:
 # Pods on the advertised networks. Kept modest: a /20 with hostSubnet 26 gives
 # ~60 usable addresses per node. For high pod density run evpn-pod-density.yml
 # or override cidrPrefix/hostSubnet and drop the network count.
-- name: bgp-ra-density-pods
+# Job name must equal this file's name: generate_perf_report.py looks for
+# podLatencyMeasurement-<workload>.json, and the workflow passes the perf-test
+# matrix value as --workload.
+- name: bgp-ra-density
   jobIterations: 100
   qps: 10
   burst: 10
