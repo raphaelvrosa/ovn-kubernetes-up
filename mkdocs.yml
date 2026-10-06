@@ -221,6 +221,7 @@ nav:
       - Bottleneck Analysis: perf-scale/bgp-evpn/03-bottlenecks.md
       - CI and kube-burner: perf-scale/bgp-evpn/04-ci-kube-burner.md
       - Roadmap: perf-scale/bgp-evpn/05-roadmap.md
+      - Local Lab (kind): perf-scale/bgp-evpn/06-local-lab.md
   - Enhancement Proposals:
     - okeps/index.md
     # - FeatureName: okeps/<filename.md>
