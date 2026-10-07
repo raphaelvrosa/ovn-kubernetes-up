@@ -91,6 +91,7 @@ Numbers 4, 5 and 8 are ceilings rather than slopes: they do not degrade, they st
 | Document | Contents |
 |---|---|
 | [Glossary](glossary.md) | Terms, acronyms and the naming convention used for SLIs |
+| [00 — Background](00-background.md) | What CUDNs, VRFs, BGP and EVPN actually are, with live-cluster output showing what each creates and which process creates it |
 | [01 — Benchmarking Methodology](01-methodology.md) | Topology models, hard constraints, scale ladder, derived quantities, run protocols, SLI definitions |
 | [02 — Metrics and Instrumentation](02-metrics.md) | What is exported today, what is missing and where to add it, what must be measured outside Prometheus |
 | [03 — Bottleneck Analysis](03-bottlenecks.md) | Twelve ranked hypotheses with mechanism, confirming metric, candidate fix, and which project owns each |
@@ -110,7 +111,7 @@ Numbers 4, 5 and 8 are ceilings rather than slopes: they do not degrade, they st
 | Engineer adding instrumentation | [02](02-metrics.md) table 2 — each row is one small PR |
 | Planning a sprint | [05](05-roadmap.md), then [03](03-bottlenecks.md) for sizing |
 | Reviewing the approach | This page, then [01](01-methodology.md) |
-| **New to the feature** | **[06](06-local-lab.md) first** — build the thing in kind and watch it work before reading about how it fails |
+| **New to the feature** | **[00](00-background.md) then [06](06-local-lab.md)** — understand the objects, then build them in kind, before reading about how they fail |
 
 ---
 

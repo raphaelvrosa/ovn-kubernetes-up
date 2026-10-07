@@ -636,25 +636,40 @@ kubectl -n ovn-kubernetes logs ds/ovnkube-node -c ovnkube-controller | grep metr
 
 ### Scrape by hand
 
+!!! warning "Do not use `kubectl port-forward` here"
+    Unless you passed `-mip 0.0.0.0`, the endpoints bind to the **node IP**, not `0.0.0.0`:
+
+    ```console
+    $ kubectl -n ovn-kubernetes logs deploy/ovnkube-control-plane | grep metrics_bind
+    ovnkube_cluster_manager_metrics_bind_address: 172.18.0.4:9411
+    ```
+
+    `port-forward` targets the pod's loopback, so it connects and returns nothing. Curl the
+    node IP directly — the kind network is reachable from the host.
+
 ```bash
-kubectl -n ovn-kubernetes port-forward ds/ovnkube-node 9410:9410 &
-kubectl -n ovn-kubernetes port-forward deploy/ovnkube-control-plane 9411:9411 &
+CP=$(kubectl get node ovn-control-plane -o jsonpath='{.status.addresses[?(@.type=="InternalIP")].address}')
+W=$(kubectl get node ovn-worker -o jsonpath='{.status.addresses[?(@.type=="InternalIP")].address}')
 
-# Did -sm actually take? This is empty without it.
-curl -s localhost:9411/metrics | grep ovnkube_clustermanager_workqueue_adds_total
+# Did -sm actually take? Empty without it.
+curl -s "http://${CP}:9411/metrics" | grep ovnkube_clustermanager_workqueue_adds_total
 
-# The BGP/EVPN feature gauges.
-curl -s localhost:9411/metrics | grep -E 'route_advertisement_condition|vtep_condition|cluster_user_defined_networks'
+# The BGP/EVPN feature gauges — present with or without -sm.
+curl -s "http://${CP}:9411/metrics" | grep -E 'route_advertisement_condition|vtep_condition|cluster_user_defined_networks'
+
+# Node side, and the OVN/OVS exporters.
+curl -s "http://${W}:9410/metrics" | grep ^ovnkube_
+curl -s "http://${W}:9476/metrics" | grep -E '^(ovn|ovs)_'
 ```
 
 ### Profile the reconcile loop
 
 ```bash
 # 30-second CPU profile while you apply a batch of RAs.
-curl -s "http://localhost:9411/debug/pprof/profile?seconds=30" -o cm-cpu.pprof
+curl -s "http://${CP}:9411/debug/pprof/profile?seconds=30" -o cm-cpu.pprof
 go tool pprof -top -nodecount=30 cm-cpu.pprof
 
-curl -s "http://localhost:9411/debug/pprof/heap" -o cm-heap.pprof
+curl -s "http://${CP}:9411/debug/pprof/heap" -o cm-heap.pprof
 go tool pprof -top cm-heap.pprof
 ```
 
@@ -816,10 +831,11 @@ docker exec frr vtysh -c "show bgp l2vpn evpn route type macip"
 
 # Node datapath
 docker exec ovn-worker ip route show proto bgp
-docker exec ovn-worker ovn-nbctl --format=table find logical_router_static_route
+docker exec ovn-worker ip -d link show type vrf
+docker exec ovn-worker bridge vlan tunnelshow
 
-# Metrics and profiles
-kubectl -n ovn-kubernetes port-forward deploy/ovnkube-control-plane 9411:9411 &
-curl -s localhost:9411/metrics | grep ovnkube_clustermanager_
-curl -s "http://localhost:9411/debug/pprof/profile?seconds=30" -o cm.pprof
+# Metrics and profiles — node IP, NOT localhost
+CP=$(kubectl get node ovn-control-plane -o jsonpath='{.status.addresses[0].address}')
+curl -s "http://${CP}:9411/metrics" | grep ^ovnkube_clustermanager_
+curl -s "http://${CP}:9411/debug/pprof/profile?seconds=30" -o cm.pprof
 ```
