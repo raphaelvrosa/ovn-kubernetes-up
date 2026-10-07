@@ -216,6 +216,7 @@ nav:
     - BGP and EVPN:
       - perf-scale/bgp-evpn/index.md
       - Glossary: perf-scale/bgp-evpn/glossary.md
+      - Background (CUDN, VRF, BGP, EVPN): perf-scale/bgp-evpn/00-background.md
       - Benchmarking Methodology: perf-scale/bgp-evpn/01-methodology.md
       - Metrics and Instrumentation: perf-scale/bgp-evpn/02-metrics.md
       - Bottleneck Analysis: perf-scale/bgp-evpn/03-bottlenecks.md
