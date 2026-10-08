@@ -22,6 +22,9 @@ values.
 ## Change log
 This list is to help notify if there are additions, changes or removals to metrics. Latest changes are at the top of this list.
 
+- Rename `ovnkube_clustermanager_route_advertisement_condition` to `ovnkube_clustermanager_route_advertisements_condition`, matching the other `route_advertisements_*` metrics
+- Add the `ovnkube_clustermanager_route_advertisements_*` reconcile, FRRConfiguration, prefix, and NAD metrics, registered with route advertisements and `--metrics-enable-scale`
+- Add `ovnkube_controller_route_import_*` metrics, registered with `--enable-route-advertisements`, and `ovnkube_node_evpn_*` metrics, registered with `--enable-evpn`
 - Remove the Raft-only `ovn_db_cluster_*` metrics because supported OVN NB and SB databases run as standalone instances.
 - Add `ovnkube_clustermanager_route_advertisement_condition`, `ovnkube_clustermanager_cluster_user_defined_network_condition`, and `ovnkube_clustermanager_vtep_condition` condition metrics
 - Add `transport` label to `ovnkube_clustermanager_cluster_user_defined_networks` to distinguish CUDNs by transport type (Default, EVPN, NoOverlay)
