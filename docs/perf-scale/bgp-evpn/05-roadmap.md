@@ -95,6 +95,31 @@ because the FRR version determines EVPN behaviour under test.
 
 **Deliverable**: One PR closing all four.
 
+### Activity 0.7: Reject unsupported gateway-mode combinations
+
+**Problem.** EVPN and VRF-Lite are documented as local-gateway-only, but the restriction is
+enforced **only in `contrib/kind-common.sh`** — nothing in the product rejects it.
+`go-controller/pkg/config/config.go` validates that EVPN requires route advertisements and
+nothing else; a grep for any gateway-mode condition near EVPN in the config package returns
+nothing.
+
+**Impact.** `--enable-evpn --gateway-mode shared` starts cleanly: the VTEP is accepted, the
+CUDN is admitted, `FRRConfiguration`s are generated — and the dataplane silently does not
+work, because pod traffic never reaches the SVIs in shared gateway mode. The symptom
+presents as a connectivity bug rather than a misconfiguration. See
+[00 — VRFs in shared gateway mode](00-background.md#double-checked-evpn-and-shared-gateway).
+
+**Deliverable**: Two small changes.
+
+| Change | Where | Surfaces as |
+|---|---|---|
+| Reject `EnableEVPN` with `Gateway.Mode == GatewayModeShared` | `pkg/config/config.go`, beside the existing EVPN check | Startup error |
+| Reject `targetVRF: auto` without EVPN in shared gateway mode | RouteAdvertisements controller validation | `Accepted=False` condition on the RA |
+
+The second is per-RouteAdvertisements rather than per-process, so it belongs with the other
+`errConfig` checks in `pkg/clustermanager/routeadvertisements/controller.go` and should read
+like the existing "no VRF matching the RouteAdvertisements target VRF" rejection.
+
 ### Activity 0.6: Open the frr-k8s conversation
 
 File upstream issues for [hypothesis 4](03-bottlenecks.md#4-frrnodestatestatusrunningconfig-size)
