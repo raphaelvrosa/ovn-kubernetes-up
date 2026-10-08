@@ -113,7 +113,7 @@ Short form: `./kind.sh -rae -mne -nse -adv -sm -gm local -wk 2 -ml 5 -nl 5`.
 | `-nse` | Needed for primary CUDNs in [scenario B](#scenario-b-advertise-a-cudn-in-its-own-vrf) |
 | `-adv` | Creates a ready-made `RouteAdvertisements/default` for the default pod network, and adds host routes back to the pod subnets so return traffic works |
 | `-sm` | Turns on `--metrics-enable-scale` — the workqueue metric family. See [metrics](#metrics-and-profiles) |
-| `-gm local` | Default is `shared`. Local gateway is **required** for VRF-Lite and EVPN |
+| `-gm local` | Default is `shared`. Local gateway is **required** for VRF-Lite and EVPN. The harness enforces it; `config.go` does **not**, so a shared-gateway EVPN cluster starts and then silently fails to forward — see [00](00-background.md#vrfs-in-shared-gateway-mode) |
 | `-ml 5 -nl 5` | `klog` V(5). The RA controller logs its reconcile duration at V(4) and `routeimport` at V(5), so anything less hides exactly what you came to see |
 
 Useful extras:

@@ -12,16 +12,17 @@ here is illustrative pseudo-output.
 2. [The four layers](#the-four-layers)
 3. [ClusterUserDefinedNetwork](#clusteruserdefinednetwork)
 4. [VRFs — where, when, why and by whom](#vrfs-where-when-why-and-by-whom)
-5. [RouteAdvertisements — getting a network into BGP](#routeadvertisements-getting-a-network-into-bgp)
-6. [VRF-Lite: one BGP session per VRF](#vrf-lite-one-bgp-session-per-vrf)
-7. [EVPN — what it is](#evpn-what-it-is)
-8. [How OVN-Kubernetes implements EVPN](#how-ovn-kubernetes-implements-evpn)
-9. [Seeing EVPN in BGP](#seeing-evpn-in-bgp)
-10. [Per-pod: the Type-2 chain](#per-pod-the-type-2-chain)
-11. [Side by side](#side-by-side)
-12. [Who does what](#who-does-what)
-13. [Command cookbook](#command-cookbook)
-14. [References](#references)
+5. [VRFs in shared gateway mode](#vrfs-in-shared-gateway-mode)
+6. [RouteAdvertisements — getting a network into BGP](#routeadvertisements-getting-a-network-into-bgp)
+7. [VRF-Lite: one BGP session per VRF](#vrf-lite-one-bgp-session-per-vrf)
+8. [EVPN — what it is](#evpn-what-it-is)
+9. [How OVN-Kubernetes implements EVPN](#how-ovn-kubernetes-implements-evpn)
+10. [Seeing EVPN in BGP](#seeing-evpn-in-bgp)
+11. [Per-pod: the Type-2 chain](#per-pod-the-type-2-chain)
+12. [Side by side](#side-by-side)
+13. [Who does what](#who-does-what)
+14. [Command cookbook](#command-cookbook)
+15. [References](#references)
 
 ---
 
@@ -227,16 +228,24 @@ nothing: **the default pod network does not get a VRF.** It owns the main table.
 | Condition | VRF created? |
 |---|---|
 | Default pod network | No — uses the main table |
-| Primary CUDN, local gateway mode | **Yes**, named after the CUDN |
+| Primary CUDN | **Yes**, named after the CUDN, in **both** gateway modes |
 | Secondary network | No |
 | `targetVRF: auto` on a RouteAdvertisements | No *additional* VRF — it reuses the one the CUDN already made |
 | EVPN CUDN | Yes, plus VXLAN/bridge/SVI devices |
 
-!!! note "Gateway mode matters"
-    This cluster runs `--gateway-mode local`, where pod egress leaves the OVN datapath through
-    the management port and is routed by the **host**. That host routing is what needs a VRF.
-    VRF-Lite and EVPN are supported in local gateway mode only, which is why every example
-    here uses it.
+The second row is worth being precise about, because it is easy to assume otherwise. The call
+is `udng.vrfManager.AddVRF(...)` in `pkg/node/gateway_udn.go`, inside
+`addNetworkWithResolvedUplink`. The branch guarding it tests **DPU mode**, not gateway mode:
+
+```go
+} else if config.IsModeDPUHost() || config.IsModeFull() {
+    ...
+    if err = udng.vrfManager.AddVRF(vrfDeviceName, mplink.Attrs().Name, uint32(udng.vrfTableId), nil); err != nil {
+```
+
+So a primary CUDN gets a VRF in shared gateway mode too. What changes between the modes is not
+whether the VRF exists but **whether anything important routes through it** — see
+[VRFs in shared gateway mode](#vrfs-in-shared-gateway-mode).
 
 ### Naming — and the 15-character limit
 
@@ -329,6 +338,143 @@ NetlinkDeviceManager: found 2 existing VID/VNI mappings on evx4-lab-vtep
 That periodic sync is correctness insurance against anything else touching the netlink state —
 and it is also [bottleneck 11](03-bottlenecks.md#11-periodic-full-resyncs-on-the-node), because
 its cost grows with network count whether or not anything changed.
+
+---
+
+## VRFs in shared gateway mode
+
+Everything above was captured on a `--gateway-mode local` cluster. The natural follow-up is
+what changes under `--gateway-mode shared`, which is the **default** and the mode most
+clusters run.
+
+!!! note "Not measured"
+    Unlike the rest of this document, this section is derived from the source and the feature
+    documentation rather than from a live shared-gateway cluster. The code references are
+    exact; the claims have not been reproduced by hand. Rebuilding the lab under shared
+    gateway and re-capturing is a worthwhile hour.
+
+### The one-line answer
+
+**The VRF is still created, and is still populated, but pod egress no longer traverses it.**
+In shared gateway mode, pod egress stays inside the OVN/OVS datapath — pod → logical switch →
+gateway router → `breth0` — and never enters the host networking stack. The Linux VRF only
+ever contained the network's management port, so once pod egress stops using the management
+port, the VRF stops being on that path.
+
+### What the VRF is still for
+
+It does not become dead weight. In either mode the VRF continues to serve:
+
+| Traffic | Why it still needs the VRF |
+|---|---|
+| Host-networked pods reaching UDN services | They originate in the host stack and need the per-network table to pick the right next hop |
+| Reply traffic into UDN pods | The `169.254.x` masquerade route pointing at `ovn-k8s-mpN` lives in the VRF |
+| Service CIDR reachability from the host | The `10.96.0.0/16` route is a VRF route |
+| Address-space separation | Two CUDNs with overlapping subnets still need separate tables for anything host-originated |
+
+The routes and rules themselves are not gateway-mode-conditional either.
+`constructUDNVRFIPRules` and `updateUDNVRFIPRoute` in `pkg/node/gateway_udn.go` branch on
+`isNetworkAdvertised` and `isNetworkAdvertisedToDefaultVRF` — **not** on `config.Gateway.Mode`.
+
+### What changes for route advertisement
+
+The important difference is on the **import** side — what happens to routes the fabric sends
+*to* the cluster.
+
+| | Local gateway | Shared gateway |
+|---|---|---|
+| Pod egress path | pod → OVN → `mpN` → **host stack** → `breth0` | pod → OVN → **GR** → `breth0` |
+| Who makes the egress routing decision | the Linux VRF table | the OVN gateway router |
+| Learned BGP routes land in | the node routing table (default VRF, or the network's VRF) | the node routing table **and** are synced into OVN |
+| Consumer of learned routes | host routing | **nbdb logical router static routes** on the GR |
+| Ingress of advertised prefixes | OVS flow sends to `LOCAL`, host routes to `mpN` | OVS flow sends straight to the network's patch port |
+| Hardware offloadable | No | Yes |
+
+The feature documentation states the import behaviour directly
+([route-advertisements.md](../../features/bgp-integration/route-advertisements.md)):
+
+> This will result in the routes being installed in the main (default VRF) routing table on the
+> nodes and used by the pod egress traffic in local gateway mode. As long as the
+> `route-advertisements` feature is enabled, OVN-Kubernetes will synchronize the BGP routes
+> from the default VRF to the default OVN pod network gateway router and hence used for the
+> egress traffic of the pods on that network in shared gateway mode.
+
+That synchronisation is `pkg/ovn/routeimport` — the component described in
+[bottleneck 7](03-bottlenecks.md#7-routeimport-full-dump-and-diff-per-network). **In shared
+gateway mode `routeimport` is not an optimisation, it is the only way a learned route reaches
+the dataplane.** In local gateway mode the host table would route correctly even if
+`routeimport` were doing nothing. That makes its latency and correctness materially more
+important in shared gateway mode, and worth stating in any shared-gateway benchmark.
+
+The ingress-side difference is visible as OVS flows on `breth0`: shared gateway sends an
+advertised prefix to the network's patch port (`actions=output:3`), local gateway sends it to
+the host (`actions=LOCAL`) and lets the VRF route it onward.
+
+### What is not supported in shared gateway mode
+
+Two things, both documented limitations rather than bugs:
+
+| Feature | Status | Source |
+|---|---|---|
+| Advertising a network **to the default VRF** (`targetVRF` unset) | **Supported** in both modes | — |
+| **VRF-Lite** (`targetVRF: auto`, no EVPN) | **Local gateway only** | `route-advertisements.md` Known Limitations: "VRF-Lite configurations are only supported in local gateway mode." |
+| **EVPN** | **Local gateway only** | `evpn.md` Known Limitations: "Only supported in local gateway mode. Supporting shared gateway mode is a future goal." |
+
+The reason is the same in both cases and follows from the table above. VRF-Lite and EVPN both
+require egress to be routed *by the host, inside the network's VRF* — VRF-Lite out a
+VRF-enslaved uplink sub-interface, EVPN into the VXLAN bridge via the SVIs. In shared gateway
+mode the packet never reaches the host stack, so neither mechanism is on the path. The OVN
+gateway router has no notion of a Linux VRF and no way to hand a packet to an SVI.
+
+The VRF-Lite section of the feature documentation is explicit that the per-VRF uplink is the
+administrator's job, not ovn-kubernetes':
+
+> At least one interface with proper IP configuration needs to be attached to the network's
+> VRF. The CUDN egress traffic matching the learned routes will be routed through that
+> interface. **OVN-Kubernetes does not manage this interface nor its attachment to the
+> network's VRF.**
+
+That is exactly the gap observed in [the VRF-Lite walkthrough](#the-catch-observed) — the
+session stayed in `Connect` because no such interface exists in the kind harness. Documented
+behaviour, not a defect.
+
+### Double-checked: EVPN and shared gateway
+
+Asked directly — *does EVPN work in shared gateway mode?* — the answer is **no, and the
+enforcement is weaker than you would want**:
+
+| Layer | Enforces local gateway for EVPN? |
+|---|---|
+| Feature documentation | **Yes** — `evpn.md` Known Limitations says so plainly |
+| `contrib/kind-common.sh` | **Yes** — `"EVPN requires local gateway mode (-gm local)"`, exits 1 |
+| `go-controller/pkg/config/config.go` | **No** |
+| CUDN CEL rules / transport validation webhook | **No** |
+
+`config.go` validates exactly one thing about EVPN:
+
+```go
+if OVNKubernetesFeature.EnableEVPN && !OVNKubernetesFeature.EnableRouteAdvertisements {
+    return fmt.Errorf("invalid feature configuration: EVPN requires route advertisements but route advertisements are disabled")
+}
+```
+
+A grep for any gateway-mode condition near EVPN in the config package returns nothing. So
+**`--enable-evpn` together with `--gateway-mode shared` starts cleanly**: ovnkube comes up,
+the VTEP is accepted, the CUDN is admitted, and the control plane generates EVPN
+`FRRConfiguration`s as usual. What you would not get is a working dataplane, because pod
+traffic never reaches the SVIs. The failure would be silent and would look like a
+connectivity bug rather than a configuration error.
+
+Two consequences worth carrying forward:
+
+- **For the lab and the benchmark**: always pass `-gm local`. The kind harness enforces it for
+  you, which is the only reason this is hard to trip over in practice.
+- **As a finding**: a `config.go` validation rejecting `EnableEVPN` with
+  `Gateway.Mode == GatewayModeShared` — mirroring the existing route-advertisements check — is
+  a small, self-contained PR that converts a silent dataplane failure into a startup error. It
+  is listed as a candidate chore in [roadmap P0](05-roadmap.md). The same argument applies to
+  VRF-Lite, though that one is per-RouteAdvertisements rather than per-process, so it belongs
+  in the RA controller's validation and should surface as a `Not Accepted` condition.
 
 ---
 
@@ -1064,11 +1210,17 @@ The same question — "how does this network's traffic leave the cluster?" — a
 | Routes scale with | — | nodes × networks | **pods** (Type-2) |
 | Hard ceiling | — | sessions per node | **4094** VLANs per VTEP |
 | Devices on the node | VRF + `mpN` | same | + bridge, SVD VXLAN, 2 SVIs per network |
+| **Gateway modes** | both | **local only** | **local only** |
 
 The trade is clear: VRF-Lite is simpler to reason about and needs no VXLAN, but costs a session
 and a fabric link per tenant. EVPN costs a VXLAN datapath and an encap header, and gives you
 arbitrary tenant counts over one session — up to the VLAN ceiling, and up to whatever Type-2
 volume the fabric tolerates.
+
+Advertising a network **to the default VRF** — `targetVRF` left unset, no EVPN — is the only
+one of the three BGP options that works in shared gateway mode, and it is also the one the
+`-adv` flag sets up for the default pod network. See
+[VRFs in shared gateway mode](#vrfs-in-shared-gateway-mode).
 
 ---
 
