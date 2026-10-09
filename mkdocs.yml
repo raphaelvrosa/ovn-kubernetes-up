@@ -224,6 +224,7 @@ nav:
       - Roadmap: perf-scale/bgp-evpn/05-roadmap.md
       - Local Lab (kind): perf-scale/bgp-evpn/06-local-lab.md
       - Running kube-burner: perf-scale/bgp-evpn/07-running-kube-burner.md
+      - First CI Results: perf-scale/bgp-evpn/08-first-ci-results.md
   - Enhancement Proposals:
     - okeps/index.md
     # - FeatureName: okeps/<filename.md>
