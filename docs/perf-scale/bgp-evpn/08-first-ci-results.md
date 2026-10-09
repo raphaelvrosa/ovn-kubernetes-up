@@ -1,16 +1,19 @@
 # 08 — First CI Results
 
-The first two measured runs of the `bgp-ra-density` lane. Confirms bottleneck hypotheses 1 and
-12 from [03 — Bottleneck Analysis](03-bottlenecks.md) at six nodes, demotes 2 and 4 on measured
-evidence, rules out six others at this scale, and records the harness defects the runs exposed.
+The first three measured runs of the `bgp-ra-density` lane. Confirms bottleneck hypothesis 12 from
+[03 — Bottleneck Analysis](03-bottlenecks.md) at six nodes, demotes 2 and 4 on measured
+evidence, closes 5 as a harness defect, and records the harness defects the runs exposed.
+Hypothesis 1 was briefly marked confirmed here and that has been
+[withdrawn](#corrections).
 
 !!! info "Two runs"
 
     **Run 1** [37926123305](https://github.com/ovn-kubernetes/ovn-kubernetes/actions/runs/37926123305),
     commit `63b2c2b`. **Run 2**
     [37936933421](https://github.com/ovn-kubernetes/ovn-kubernetes/actions/runs/37936933421),
-    commit `d038946`, with the run-1 harness fixes applied. Same six-node shape and workload.
-    Both succeeded. Sections below give run 1 → run 2 where the figure moved.
+    commit `d038946`, with the run-1 harness fixes. **Run 3** 37944809607, with the counter
+    queries corrected and client-go instrumentation added. Same six-node shape and workload
+    throughout; all three succeeded.
 
 ## Contents
 
@@ -21,7 +24,7 @@ evidence, rules out six others at this scale, and records the harness defects th
 5. [The reconcile is I/O-bound, not CPU-bound](#the-reconcile-is-io-bound-not-cpu-bound)
 6. [frr-k8s compacts the generated configs 9.7x](#frr-k8s-compacts-the-generated-configs-97x)
 7. [Harness defects exposed](#harness-defects-exposed)
-8. [Open anomaly](#open-anomaly)
+8. [Open anomaly — resolved](#open-anomaly-resolved)
 9. [Corrections](#corrections)
 10. [Hypothesis scoreboard](#hypothesis-scoreboard)
 11. [Next lanes](#next-lanes)
@@ -78,10 +81,22 @@ profiles captured. The out-of-band hook wrote `bgp-state-bgp-ra-density.json`.
 
 Peak depth on the RA controller queue: **15 of 20 RAs waiting at once**.
 
-**Reproduced in run 2 almost exactly**, on an independently built cluster: wait p99
-16.077 → **16.056 s**, work p99 1.019 → **1.019 s**. Supporting figures are equally stable:
-libovsdb 95 → 97 txn/s, p99 13 → 12 ms, OVN DB total 4.03 → 4.07 MB. The lane is a reliable
-instrument, which is the precondition for using it as a regression gate later.
+**Reproduced across all three runs** on independently built clusters: wait p99
+16.077 / 16.056 / 16.056 s, work p99 1.019 / 1.019 / 1.019 s. Supporting figures are equally
+stable: libovsdb 95 → 97 txn/s, p99 13 → 12 ms, OVN DB total 4.03 → 4.07 MB.
+
+!!! warning "What that agreement does and does not mean"
+
+    An earlier version of this page called it reproducibility "within 0.02 s". That overstates
+    it. With `ExponentialBuckets(.001, 2, 16)`, 16.056 is interpolated inside
+    `[8.192, 16.384]` and 1.019 inside `[0.512, 1.024]`. Identical observation counts in
+    identical buckets produce identical outputs, so the agreement shows the **workload** is
+    reproducible, not that the measurement resolves to milliseconds. Resolution at these
+    magnitudes is about one octave.
+
+    The **ratio** of roughly 15.8x is robust, because both numbers are pinned the same way. It
+    also explains an apparent discrepancy: the RA reconcile duration p99 of 0.637 s and the
+    workqueue work p99 of 1.019 s sit in the **same bucket** and are not in conflict.
 
 The shape matters more than the magnitude. The RA controller has the **lowest** add rate of any
 queue doing real work and the **highest** wait by two orders of magnitude. Every other queue
@@ -141,6 +156,23 @@ consequential thing in either run.
 So **at least 90% of the time inside `reconcileRouteAdvertisements` is spent blocked on the
 apiserver, not computing.** The inflight ceiling of 2 is the single-worker signature seen from
 the server side: one writer at a time, no server-side contention, pure serialisation.
+
+**Run 3 made this direct rather than inferred.** With client-go instrumentation in place:
+
+| Verb | p99 peak | p99 mean |
+|---|---|---|
+| PUT | 850.85 ms | 123.59 ms |
+| POST | 127.34 ms | 64.83 ms |
+| PATCH | 80.75 ms | 42.91 ms |
+| GET | 15.92 ms | 7.21 ms |
+
+Each reconcile issues **six POSTs**, one FRRConfiguration per node. Six at 65 to 127 ms is
+0.4 to 0.76 s, which is the whole measured reconcile. The second per reconcile *is* six
+sequential apiserver writes.
+
+Client-side rate limiter p99 is **0.99 ms** for every verb — the first histogram bucket, i.e.
+effectively zero. **ovnkube's own QPS and burst are not the limit**, so the serialisation is
+purely the single worker, and threadiness has real headroom before client throttling bites.
 
 Two consequences:
 
@@ -210,7 +242,7 @@ matters:
 post-pause hook in kube-burner, so the wait has to live in the script. Run 2 logged
 `settled after 10s at 120/13841`; job time went 42 s to 53 s.
 
-### c. `rate()` cannot see a one-shot workload — first diagnosis was wrong
+### c. `rate()` cannot see a one-shot workload — fixed, after a wrong first diagnosis
 
 `raReconcileDuration99th`, `raNADWriteRate` and `routeImportOpRate` returned nothing, and
 `raFRRConfigurationWriteRate` returned 3 documents for exactly one RA.
@@ -226,47 +258,91 @@ therefore flat across every sample in the window, so `rate()` is zero everywhere
 drops it. Run 1's three documents were scrape-phase luck: its first sample caught the ramp
 mid-flight at 30 of 120. Same query, different alignment.
 
-**Fix** — drop `rate()` for these and read the cumulative counters directly, as
-`raGeneratedFRRConfigurations` and `raNADsListed` already do. For the histogram, take
+**Fixed.** Dropped `rate()` for these and read the cumulative counters directly, as
+`raGeneratedFRRConfigurations` and `raNADsListed` already do. For the histogram,
 `histogram_quantile` over the raw buckets: on a cluster built for the run,
 cumulative-since-start *is* the workload's distribution. Cumulative totals are the more useful
 number for a density lane anyway, being how many writes the workload caused rather than writes
-per second. The workqueue queries keep `rate()`, because those queues are continuously
-active.
+per second. The workqueue queries keep `rate()`, because those queues are continuously active.
+
+Run 3 result — every one of them now indexes:
+
+| Query | run 2 | run 3 |
+|---|---|---|
+| `raReconcileDuration99th`, `raReconcileCount` | empty | 7, 7 |
+| `raFRRConfigurationWrites` | empty | 7 |
+| `raNADWrites` | empty | 7 |
+| `routeImportOps` | empty | 12 |
+| `ovnkubeWorkqueueRetryRate` | empty | 3 |
+
+Still empty, and correctly so: `ovnkubeWorkqueueDepth` (no backlog at the sample instants) and
+`ovnDBTxnTryAgainRate` (no OVSDB contention).
 
 ### d. Node count is not what the matrix says
 
 Covered under [Run identity](#run-identity). Documented in the matrix comment rather than
 changed, because the two infra nodes are wanted.
 
+### e. The shared apiserver queries never matched anything
+
+`API99thLatency` and `APIRequestRate` in `contrib/perf/metrics.yml` both filter on
+`apiserver="kube-apiserver"`. **That label does not exist on a kind cluster**, so both matched
+nothing and indexed zero documents on every run of every lane, not just this one — which is
+why apiserver latency was missing from the first two analyses and the cost of a reconcile had
+to be reached by subtracting CPU from workqueue duration.
+
+**Fixed** by dropping the filter. Verified on a lab cluster: 14 and 8 series respectively,
+carrying `verb`, `resource` and `code`. This also supplies the only way to attribute a status
+code to a resource, since client-go calls its result hook without a URL.
+
 ---
 
-## Open anomaly
+## Open anomaly — resolved
 
-`bgpSessionStates: {count: 12, established: 6}` — twelve objects for six nodes, half
-established, while the peer reports `peerCount: 6, failedPeers: 0`.
+`bgpSessionStates: {count: 12, established: 6}` for six nodes, while the peer reports
+`peerCount: 6, failedPeers: 0`. Identical in all three runs, so never a convergence artifact.
 
-**Identical in run 2 after a proper settle, so it is not a convergence-timing artifact.**
+The hook instrumentation added after run 2 settled it in run 3:
 
-What has been ruled out and established since:
+```json
+"byPeer":   { "172.18.0.8": 6, "fc00:f853:ccd:e793::8": 6 },
+"byStatus": { "Established": 6, "Active": 6 },
+"byVRF":    { "default": 12 },
+"sourceFRRConfigurations": [
+  { "name": "receive-all",
+    "routers": [ { "vrf": "default",
+                   "neighbors": [ "172.18.0.8", "fc00:f853:ccd:e793::8" ] } ] } ]
+```
 
-| Check | Result |
-|---|---|
-| Stale objects from a previous frr-k8s daemon generation | **Ruled out.** A daemonset rollout on a lab cluster replaces them cleanly; the count stays constant. They are owned by the daemon Pod and garbage-collected with it. |
-| Does it track RA count? | **No.** A three-node lab with 21 RouteAdvertisements has 3 objects, all established. |
-| Does it track node count? | **Yes.** Six nodes gives twelve, i.e. two per node. |
-| Source configuration neighbours (lab) | One: a single router with a single neighbour. |
+`receive-all` configures **an IPv4 and an IPv6 neighbour in a single router**. On an IPv4-only
+lane the IPv6 session never leaves `Active`, BGP's "still trying to connect". Six nodes times
+two neighbours is twelve objects, six of which can never establish.
 
-The `receive-all` template in `contrib/frr-k8s/patches/0001-Improvements-to-the-demo.patch`
-defines a **second router block** with `SsFrr*` neighbours alongside the primary `Frr*` ones.
-The leading explanation is therefore that CI populates both and the second neighbour never
-establishes — a harness configuration artifact, **not** evidence for
-[hypothesis 5](03-bottlenecks.md#5-bgpsessionstate-cardinality).
+It is a **harness defect, not frr-k8s cardinality**, so
+[hypothesis 5](03-bottlenecks.md#5-bgpsessionstate-cardinality) gets no support from it. The
+earlier guess that the `SsFrr*` second router block was responsible was wrong — there is only
+one router.
 
-Not confirmed, because it is not reproducible on the lab cluster. The run hook now records
-`bgpSessionStates.byStatus`, `.byPeer`, `.byVRF` and `.nodes`, plus `sourceFRRConfigurations`
-with each source config's routers and neighbour addresses. The next run settles it without
-guesswork.
+### Why it is not fixed here
+
+The IPv6 neighbour is added unconditionally by the frr-k8s demo script, which discovers both
+addresses of the external FRR container. The natural gate is `PLATFORM_IPV6_SUPPORT`, and that
+variable is itself broken:
+
+{% raw %}
+```yaml
+PLATFORM_IPV6_SUPPORT: "${{ matrix.ipfamily == 'IPv6' || matrix.ipfamily == 'dualstack' }}"
+```
+{% endraw %}
+
+Every matrix entry in both `test.yml` and `performance-test.yml` spells the family in
+lowercase (`ipv4`, `ipv6`, `dualstack`), so the comparison against `'IPv6'` is **always false**
+— including on `test.yml`'s 8 IPv6 and 16 dualstack lanes. Those lanes work today *because*
+the IPv6 neighbour is added unconditionally; it is compensating for the broken variable.
+
+So the two have to be fixed together, and doing so changes cluster setup for 24 e2e lanes.
+That needs its own PR and its own full e2e run. Left as a follow-up rather than bundled into a
+perf-lane change.
 
 ---
 
@@ -285,7 +361,20 @@ and worth fixing, but only the **peer-side prefix counts** were genuinely premat
 hypothesis 4.
 
 **The diagnosis of defect (c) was wrong**, and the fix shipped for it did not work. See
-[defect c](#c-rate-cannot-see-a-one-shot-workload-first-diagnosis-was-wrong).
+[defect c](#c-rate-cannot-see-a-one-shot-workload-fixed-after-a-wrong-first-diagnosis). The
+second attempt, reading cumulative counters, does work.
+
+**Hypothesis 1 was marked CONFIRMED on bad reasoning, and that is withdrawn.** The argument
+was that `clustermanager-node-node` peaking at 19.85 adds/s while the RA queue took 0.22/s was
+"the amplification path in miniature". Run 3 made the per-RA counters readable and they say
+otherwise: **20 RouteAdvertisements, 20 reconciles, 120 creates, zero `unchanged` writes**.
+One reconcile per RA, no redundant work, no amplification. The RA queue took 0.22/s because
+that is 20 items over 90 seconds. A create-only lane with no competing churn cannot test
+hypothesis 1 at all — `bgp-ra-churn` is the lane for that.
+
+**"Reproduced within 0.02 s" overstated the measurement.** The agreement across runs is
+identical histogram-bucket occupancy, not sub-millisecond resolution. Corrected in
+[the headline section](#finding-the-routeadvertisements-queue-is-starved-not-busy).
 
 ---
 
@@ -293,25 +382,25 @@ hypothesis 4.
 
 | # | Hypothesis | Status after this run |
 |---|---|---|
-| 1 | `ReconcileAll()` fan-out | **Confirmed** at six nodes, both runs |
+| 1 | `ReconcileAll()` fan-out | **Untested** — 20 RAs gave exactly 20 reconciles and 0 `unchanged` writes; a create-only lane cannot test it. Earlier CONFIRMED [withdrawn](#corrections) |
 | 2 | `generateFRRConfigurations` recomputed from scratch | **Demoted** — real but not the cost; approx 20 s of handler time against under 2 core-seconds of CPU |
 | 3 | Generated object explosion | Untested — 121 objects is trivial |
 | 4 | `FRRNodeState.status.runningConfig` size | **Demoted** — 9.7x merge compaction, 650x headroom at this shape |
-| 5 | `BGPSessionState` object count | Anomaly is real but probably a harness artifact; see [Open anomaly](#open-anomaly) |
+| 5 | `BGPSessionState` object count | **Closed as a harness defect** — an IPv6 neighbour that cannot establish on an IPv4 lane; see [Open anomaly](#open-anomaly-resolved) |
 | 6 | frr-k8s metrics exporter scrape cost | Untested |
 | 7 | `routeimport syncNetwork` | Not a factor at 126 routes (16 ms p99) |
 | 8 | EVPN per-pod datapath | Out of scope for this lane |
 | 9 | `getEgressIPsByNodesByNetworks` | Not exercised (no EgressIP) |
 | 10 | `addAdvertisedNetworkIsolation` | Untested — needs strict/loose axis |
 | 11 | Periodic full resyncs | Not visible at this size |
-| 12 | Hardcoded `Threadiness: 1` | **Confirmed, promoted to [P2b](05-roadmap.md#phase-p2b-threadiness-ab)** — 15.8x wait/work, reproduced within 0.02 s |
+| 12 | Hardcoded `Threadiness: 1` | **Confirmed, promoted to [P2b](05-roadmap.md#phase-p2b-threadiness-ab)** — 15.8x wait/work over three runs; six apiserver POSTs per reconcile account for the whole of it |
 
 ---
 
 ## Next lanes
 
-Fixes (a), (b) and (d) are in. Fix (c) shipped wrong and has been redone; the next run
-verifies it.
+Fixes (a) to (e) are in and verified by run 3, except the IPv6-neighbour defect, which is
+[blocked on a broader casing bug](#why-it-is-not-fixed-here) and needs its own PR.
 
 **Run the threadiness A/B before the ladder.** It was Activity 4.3, behind all of P3. Two runs
 have already produced the evidence that gates it and the blocked time is I/O, so added workers

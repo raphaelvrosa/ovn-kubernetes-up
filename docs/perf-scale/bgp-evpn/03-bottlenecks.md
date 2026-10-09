@@ -88,9 +88,20 @@ transaction cost**. Those are the first two rows of
 
 ### 1. `ReconcileAll()` fan-out
 
-**Priority**: Critical. **Owner**: ovn-kubernetes. **Status: CONFIRMED** at six nodes and 20
-RouteAdvertisements — the `clustermanager-node-node` queue peaked at 19.85 adds/s while the RA
-queue itself took 0.22/s, and the RA queue reached a depth of 15 of 20.
+**Priority**: Critical. **Owner**: ovn-kubernetes. **Status: still untested.**
+
+!!! warning "A confirmation claimed here on 2026-10-09 has been withdrawn"
+
+    This was briefly marked CONFIRMED on the grounds that the
+    `clustermanager-node-node` queue peaked at 19.85 adds/s while the RA queue took 0.22/s.
+    That reading was wrong. Once the per-RA counters were readable, the third run showed
+    **20 RouteAdvertisements producing exactly 20 reconciles and 120 FRRConfiguration creates,
+    with zero `unchanged` writes** — one reconcile per RA and no redundant work at all. Those
+    node events did not re-enqueue anything. The RA queue took 0.22/s because that is 20 items
+    over 90 seconds, once each.
+
+    A create-only lane with no competing churn **structurally cannot test this hypothesis**.
+    That is what `bgp-ra-churn` is for. See [08](08-first-ci-results.md#corrections).
 
 **Mechanism.** `pkg/clustermanager/routeadvertisements/controller.go` runs seven
 sub-controllers. Four of them respond to *any* qualifying event by re-enqueueing **every**
@@ -141,10 +152,11 @@ threadiness. The index is the real fix; threadiness only buys headroom.
     The recompute is real but it is **not** where the second goes. Twenty reconciles at a 1.02 s
     work p99 is roughly 20 s of handler time, against under 2 core-seconds of cluster-manager
     CPU for the whole run, and the CPU profiles contain no ovn-kubernetes frames at all. At
-    least 90% of each reconcile is blocked on the apiserver, not computing. The cross-reconcile
-    caching this entry proposes therefore buys little on its own; the per-reconcile **write
-    count** is what matters, which is hypothesis 3's axis. Re-test on the wide lane, where the
-    per-node loops grow.
+    least 90% of each reconcile is blocked on the apiserver, not computing. The third run made
+    that direct rather than inferred: six POSTs per reconcile at a 65 to 127 ms p99 account for
+    the whole second. The cross-reconcile caching this entry proposes therefore buys little on
+    its own; the per-reconcile **write count** is what matters, which is hypothesis 3's axis.
+    Re-test on the wide lane, where the per-node loops grow.
 
 **Mechanism.** `generateFRRConfigurations` (L488-925) plus `generateFRRConfiguration` (L966)
 rebuild the complete desired state on every reconcile. Specific costs inside one call:
@@ -260,15 +272,20 @@ The mesh model reaches 499,000 with no VRFs at all. Beyond storage, these object
 on every session state change, so a fabric flap produces a write storm proportional to the
 same product.
 
-**Observed, unexplained.** Both CI runs reported 12 objects for six nodes with only six
-`Established`, while the peer reported `peerCount: 6, failedPeers: 0`. A three-node lab with
-21 RouteAdvertisements shows one object per node, all established, from a source configuration
-with a single neighbour. The `receive-all` template supports a **second router block**
-(`SsFrr*` neighbours), so the leading explanation is a second configured neighbour that never
-comes up, i.e. a harness artifact rather than evidence for this hypothesis. A daemon rollout
-was ruled out as a cause: GC replaces the objects cleanly. The run hook now records the
-breakdown by status, peer and VRF plus the neighbours each source configuration asks for, so
-the next run settles it.
+**Observed and now explained — not evidence for this hypothesis.** Three CI runs reported 12
+objects for six nodes with only six `Established`. The instrumented hook settled it:
+
+```
+byPeer:   { "172.18.0.8": 6, "fc00:f853:ccd:e793::8": 6 }
+byStatus: { "Established": 6, "Active": 6 }
+byVRF:    { "default": 12 }
+```
+
+The `receive-all` source configuration lists **both an IPv4 and an IPv6 neighbour in one
+router**, and on an IPv4-only lane the IPv6 session never leaves `Active`. Six nodes times two
+neighbours. It is a **harness defect**, not frr-k8s cardinality: see
+[08](08-first-ci-results.md#open-anomaly) for why it cannot be fixed without first fixing the
+`PLATFORM_IPV6_SUPPORT` casing bug that 24 e2e lanes currently depend on.
 
 **Confirm with.** Object count via `apiserver_storage_objects`, write rate via
 `apiserver_request_total{resource="bgpsessionstates",verb="update"}`, and apiserver p99
@@ -470,12 +487,22 @@ caching `collectEVPNNetworks` behind a network-manager generation counter.
 
 !!! success "Promoted on measured evidence, 2026-10-09"
 
-    Measured twice, within 0.02 s of each other: RouteAdvertisements queue wait p99 **16.08 s**
-    against a work p99 of **1.02 s**, a 15.8x ratio, while every other queue in the process has
-    wait approximately equal to work. apiserver `APIInflightRequests` never exceeded 2 mutating,
-    which is the single-worker signature seen from the server side. Because the blocked time is
-    I/O rather than CPU (see hypothesis 2), added workers should convert almost directly into
-    throughput until inflight becomes the limit — and inflight is currently at 2.
+    Measured three times: RouteAdvertisements queue wait p99 **16.08 s** against a work p99 of
+    **1.02 s**, a 15.8x ratio, while every other queue in the process has wait approximately
+    equal to work. apiserver `APIInflightRequests` never exceeded 2 mutating, which is the
+    single-worker signature seen from the server side.
+
+    The third run attributed the work directly: each reconcile issues **six apiserver POSTs**,
+    one FRRConfiguration per node, at a p99 of 65 to 127 ms. Six of those accounts for the
+    whole reconcile. Client-side rate limiter latency is **0.99 ms**, the first histogram
+    bucket, so ovnkube's own QPS and burst settings are not the constraint either. Added
+    workers should therefore convert almost directly into throughput until apiserver inflight
+    becomes the limit, and inflight is currently at 2.
+
+    *Resolution caveat*: with `ExponentialBuckets(.001, 2, 16)`, 16.08 s is interpolated inside
+    `[8.192, 16.384]` and 1.02 s inside `[0.512, 1.024]`. Runs agreeing to three decimals is
+    identical bucket occupancy, not sub-millisecond precision. The ratio is robust; the
+    absolute figures are good to about one octave.
 
 **Mechanism.** The shared controller framework
 (`pkg/controller/controller.go`) supports `Threadiness`, `RateLimiter` and `MaxAttempts`, but:
