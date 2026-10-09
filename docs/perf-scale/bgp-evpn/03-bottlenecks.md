@@ -15,8 +15,11 @@ the metric that confirms or refutes it, a candidate fix, and which project owns 
 
 ## How to read this document
 
-Nothing here is measured. These are **falsifiable hypotheses** derived from reading the code,
-stated before the benchmark so the benchmark cannot be tuned to confirm them. Each entry has:
+These started as **falsifiable hypotheses** derived from reading the code, stated before the
+benchmark so the benchmark could not be tuned to confirm them. As of 2026-10-09 the
+`bgp-ra-density` lane has run twice, so some now carry measured verdicts; entries without one
+remain untested rather than refuted. See [08 — First CI Results](08-first-ci-results.md) for
+the scoreboard. Each entry has:
 
 - **Mechanism** — what the code actually does, with file and symbol
 - **Why it scales badly** — the shape of the growth
@@ -85,7 +88,9 @@ transaction cost**. Those are the first two rows of
 
 ### 1. `ReconcileAll()` fan-out
 
-**Priority**: Critical. **Owner**: ovn-kubernetes.
+**Priority**: Critical. **Owner**: ovn-kubernetes. **Status: CONFIRMED** at six nodes and 20
+RouteAdvertisements — the `clustermanager-node-node` queue peaked at 19.85 adds/s while the RA
+queue itself took 0.22/s, and the RA queue reached a depth of 15 of 20.
 
 **Mechanism.** `pkg/clustermanager/routeadvertisements/controller.go` runs seven
 sub-controllers. Four of them respond to *any* qualifying event by re-enqueueing **every**
@@ -129,7 +134,17 @@ threadiness. The index is the real fix; threadiness only buys headroom.
 
 ### 2. `generateFRRConfigurations` recomputes everything
 
-**Priority**: Critical. **Owner**: ovn-kubernetes.
+**Priority**: ~~Critical~~ **Medium**. **Owner**: ovn-kubernetes.
+
+!!! note "Qualified on measured evidence, 2026-10-09"
+
+    The recompute is real but it is **not** where the second goes. Twenty reconciles at a 1.02 s
+    work p99 is roughly 20 s of handler time, against under 2 core-seconds of cluster-manager
+    CPU for the whole run, and the CPU profiles contain no ovn-kubernetes frames at all. At
+    least 90% of each reconcile is blocked on the apiserver, not computing. The cross-reconcile
+    caching this entry proposes therefore buys little on its own; the per-reconcile **write
+    count** is what matters, which is hypothesis 3's axis. Re-test on the wide lane, where the
+    per-node loops grow.
 
 **Mechanism.** `generateFRRConfigurations` (L488-925) plus `generateFRRConfiguration` (L966)
 rebuild the complete desired state on every reconcile. Specific costs inside one call:
@@ -197,7 +212,16 @@ whether frr-k8s could accept a node-list rather than requiring one object per no
 
 ### 4. `FRRNodeState.status.runningConfig` size
 
-**Priority**: Critical, and a **ceiling rather than a slope**. **Owner**: frr-k8s.
+**Priority**: ~~Critical~~ **Medium**, and a **ceiling rather than a slope**. **Owner**: frr-k8s.
+
+!!! note "Demoted on measured evidence, 2026-10-09"
+
+    The first two CI runs measured 2,306 B per node for 20 advertised Layer3 CUDNs across six
+    nodes: 650x headroom to the 1.5 MB limit. frr-k8s **merges** the per-node generated
+    configurations before rendering, so 133,728 bytes of generated FRRConfiguration collapsed
+    into 13,841 bytes of running config, a **9.7x compaction**. The 20 configs share a
+    neighbour and differ only in prefixes, which is the shape that compacts best. This is no
+    longer a candidate for "fails first". See [08 — First CI Results](08-first-ci-results.md).
 
 **Mechanism.** frr-k8s writes one `FRRNodeState` per node whose `status.runningConfig` holds
 the **entire rendered FRR running configuration as a single string**, alongside
@@ -212,7 +236,10 @@ past it, writes fail outright and the node's state stops updating.
 
 **Confirm with.** [02 table 3](02-metrics.md#table-3-measured-outside-prometheus) — measure
 `length(status.runningConfig)` across the VRF ladder at 10/100/400/1000 and extrapolate.
-Report the VRF count at which writes fail and the exact apiserver error.
+Report the VRF count at which writes fail and the exact apiserver error. **The axis that
+matters is distinct prefixes and VRFs, not generated object count**, since the measured
+compaction shows object count is almost free. EVPN is still the case to watch: `rawconfig.go`
+emits per-VRF stanzas that do not merge the way a shared neighbour does.
 
 **Candidate fix.** Upstream frr-k8s: store a hash plus a truncated or opt-in config body, or
 move the full config to a ConfigMap referenced by the status. This is a cross-project
@@ -232,6 +259,16 @@ conversation to open early because it has a long lead time — see
 The mesh model reaches 499,000 with no VRFs at all. Beyond storage, these objects are written
 on every session state change, so a fabric flap produces a write storm proportional to the
 same product.
+
+**Observed, unexplained.** Both CI runs reported 12 objects for six nodes with only six
+`Established`, while the peer reported `peerCount: 6, failedPeers: 0`. A three-node lab with
+21 RouteAdvertisements shows one object per node, all established, from a source configuration
+with a single neighbour. The `receive-all` template supports a **second router block**
+(`SsFrr*` neighbours), so the leading explanation is a second configured neighbour that never
+comes up, i.e. a harness artifact rather than evidence for this hypothesis. A daemon rollout
+was ruled out as a cause: GC replaces the objects cleanly. The run hook now records the
+breakdown by status, peer and VRF plus the neighbours each source configuration asks for, so
+the next run settles it.
 
 **Confirm with.** Object count via `apiserver_storage_objects`, write rate via
 `apiserver_request_total{resource="bgpsessionstates",verb="update"}`, and apiserver p99
@@ -428,7 +465,17 @@ caching `collectEVPNNetworks` behind a network-manager generation counter.
 
 ### 12. Hardcoded concurrency and rate limiting
 
-**Priority**: Medium, but it is the **cheapest first experiment**. **Owner**: ovn-kubernetes.
+**Priority**: ~~Medium~~ **Critical, and now the best-evidenced single change**.
+**Owner**: ovn-kubernetes. **Status: CONFIRMED.**
+
+!!! success "Promoted on measured evidence, 2026-10-09"
+
+    Measured twice, within 0.02 s of each other: RouteAdvertisements queue wait p99 **16.08 s**
+    against a work p99 of **1.02 s**, a 15.8x ratio, while every other queue in the process has
+    wait approximately equal to work. apiserver `APIInflightRequests` never exceeded 2 mutating,
+    which is the single-worker signature seen from the server side. Because the blocked time is
+    I/O rather than CPU (see hypothesis 2), added workers should convert almost directly into
+    throughput until inflight becomes the limit — and inflight is currently at 2.
 
 **Mechanism.** The shared controller framework
 (`pkg/controller/controller.go`) supports `Threadiness`, `RateLimiter` and `MaxAttempts`, but:

@@ -9,12 +9,13 @@ before optimise.**
 2. [Phase P0 — See anything](#phase-p0-see-anything)
 3. [Phase P1 — Instrument the blind spots](#phase-p1-instrument-the-blind-spots)
 4. [Phase P2 — Minimum viable BGP lane](#phase-p2-minimum-viable-bgp-lane)
-5. [Phase P3 — Scale ladder execution](#phase-p3-scale-ladder-execution)
-6. [Phase P4 — Fix the top three](#phase-p4-fix-the-top-three)
-7. [Phase P5 — EVPN and convergence](#phase-p5-evpn-and-convergence)
-8. [Cross-project dependencies](#cross-project-dependencies)
-9. [Risk assessment](#risk-assessment)
-10. [Success criteria](#success-criteria)
+5. [Phase P2b — Threadiness A/B](#phase-p2b-threadiness-ab)
+6. [Phase P3 — Scale ladder execution](#phase-p3-scale-ladder-execution)
+7. [Phase P4 — Fix the top three](#phase-p4-fix-the-top-three)
+8. [Phase P5 — EVPN and convergence](#phase-p5-evpn-and-convergence)
+9. [Cross-project dependencies](#cross-project-dependencies)
+10. [Risk assessment](#risk-assessment)
+11. [Success criteria](#success-criteria)
 
 ---
 
@@ -26,14 +27,21 @@ graph LR
     P0 --> P2[P2 BGP lane]
     P1 --> P3[P3 Scale ladder]
     P2 --> P3
+    P2 --> P2b[P2b Threadiness A/B]
     P3 --> P4[P4 Fix top three]
     P3 --> P5[P5 EVPN + convergence]
+    P2b --> P4
     P0 -.frr-k8s conversation opens here.-> P5
 ```
 
 P1 and P2 are parallelisable across two engineers. P4 is **gated on P3 evidence** — no
 optimisation lands before the measurement that justifies it, or the team spends a sprint making
 something faster that was never the limiter.
+
+**P2b is the exception, added 2026-10-09.** The threadiness experiment was Activity 4.3, behind
+the whole ladder. Two CI runs have already produced the evidence that gates it, so it no longer
+needs P3. See [P2b](#phase-p2b--threadiness-ab) and
+[08 — First CI Results](08-first-ci-results.md).
 
 The frr-k8s upstream conversation ([hypotheses 4 and 5](03-bottlenecks.md#4-frrnodestatestatusrunningconfig-size))
 is drawn from P0 deliberately: it has the longest lead time of anything here and should not wait
@@ -177,6 +185,19 @@ buckets spanning 10 ms to 1000 s makes p99 estimates useless.
 
 **Deliverable**: Usable percentiles.
 
+### Activity 1.4b: client-go request metrics
+
+**Added 2026-10-09, not in the original table 2.** `k8s.io/client-go/tools/metrics` exposes
+request instrumentation through package-level hooks that default to no-ops, and nothing in
+ovnkube ever installed an adapter, so apiserver wait time is invisible. The lane showed this is
+the dominant term: roughly 20 s of RouteAdvertisements handler time against under 2
+core-seconds of CPU. Register request duration, request count and rate limiter latency. The
+adapter is vendored already, so there is no dependency change.
+
+**Deliverable**: `ovnkube_rest_client_request_duration_seconds`, `..._requests_total` and
+`..._rate_limiter_duration_seconds`, so blocked time is attributed rather than inferred by
+subtracting CPU from workqueue work duration.
+
 ### Activity 1.5: Go benchmarks in CI
 
 `BenchmarkBGPRoutesStreaming` already exists in `pkg/ovn/routeimport/route_import_test.go` and
@@ -238,6 +259,43 @@ entries in `performance-test.yml` using the already-plumbed `ENABLE_ROUTE_ADVERT
 `compare-reports.py` can diff against a baseline. **This is where the P2 skeletons stop being
 unvalidated** — [04](04-ci-kube-burner.md#workload-skeletons) marks them as such until this
 criterion is met.
+
+---
+
+## Phase P2b — Threadiness A/B
+
+**Goal**: Quantify how much of the RouteAdvertisements reconcile cost is serialisation and
+nothing else.
+
+**Duration**: Part of one sprint. **Gated on P2 only** — the evidence it needed already exists.
+
+**Why it moved.** This was Activity 4.3, sized as "the cheapest experiment" but sequenced behind
+the entire scale ladder. The first two `bgp-ra-density` runs measured a queue wait p99 of 16.08 s
+against a work p99 of 1.02 s on the RouteAdvertisements controller, reproduced within 0.02 s
+across independent clusters, while every other queue in the process has wait approximately equal
+to work. Separately, the blocked time is apiserver I/O rather than CPU: roughly 20 s of handler
+time against under 2 core-seconds, with apiserver inflight never exceeding 2 mutating requests.
+Added workers should therefore convert almost directly into throughput. There is nothing left for
+P3 to establish before trying it.
+
+### Activity 2b.1: Expose threadiness as configuration
+
+As Activity 4.3 described: a `--controller-threadiness` style knob, with a race review on each
+controller before the default moves. The RouteAdvertisements controller is the only one that has
+to be reviewed for this experiment.
+
+**Deliverable**: A flag, defaulted to today's value of 1, with the race review recorded.
+
+### Activity 2b.2: Run the A/B on the existing lane
+
+`bgp-ra-density` unchanged at threadiness 1 and 4, same cluster shape, same workload.
+
+**Deliverable**: Before-and-after table of queue wait p99, work p99, total job time and apiserver
+inflight. The last column is the one that says whether 4 is the right number or whether the limit
+moved to the apiserver.
+
+**Exit criteria**: Wait p99 approaches work p99, or it does not and we have learned that the cost
+is not serialisation after all. Either outcome is publishable and both redirect P4.
 
 ---
 
@@ -326,13 +384,17 @@ Hoist `nodeLister.Get` and `allNoOverlayPodSubnets` out of the per-router loop.
 
 **Deliverable**: Reconcile duration p99 reduced by a measured factor.
 
+**Qualified 2026-10-09**: measured CPU says the recompute is not where the second goes — see
+[hypothesis 2](03-bottlenecks.md#2-generatefrrconfigurations-recomputes-everything). Keep this
+activity, but gate it on the wide lane showing the per-node loops actually growing, and expect
+the write count rather than the recompute to dominate.
+
 ### Activity 4.3: Threadiness knob
 
-Expose controller threadiness as configuration. The cheapest experiment in the set: it converts
-a code change into a tuning dial and separates "the algorithm is expensive" from "we run one
-worker". Requires a race review on each controller before raising the default.
-
-**Deliverable**: A documented flag with tested safe values.
+**Moved to [P2b](#phase-p2b--threadiness-ab).** The evidence that was supposed to gate it
+arrived from the first two lane runs instead of from P3, so it no longer waits for the ladder.
+What remains here is rolling the tested default out beyond the RouteAdvertisements controller,
+which does still need P3 to say which other controllers are worth it.
 
 ### Activity 4.4: Incremental route import
 
