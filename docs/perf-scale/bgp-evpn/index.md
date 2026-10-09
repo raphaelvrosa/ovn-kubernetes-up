@@ -98,6 +98,7 @@ Numbers 4, 5 and 8 are ceilings rather than slopes: they do not degrade, they st
 | [04 — CI and kube-burner](04-ci-kube-burner.md) | Harness design, what stock kube-burner already does, genuine upstream asks, kind's ceiling |
 | [05 — Roadmap](05-roadmap.md) | Six phases with goals, activities, deliverables, exit criteria, risks and success criteria |
 | [06 — Local Lab](06-local-lab.md) | Hands-on kind walkthrough: bring up BGP and EVPN, drive RAs by hand, read FRR, enable metrics, iterate on code |
+| [07 — Running kube-burner](07-running-kube-burner.md) | Running the perf lane locally: input artifacts, configuration, outputs, how to read them, and what CI does |
 
 ---
 
@@ -105,7 +106,7 @@ Numbers 4, 5 and 8 are ceilings rather than slopes: they do not degrade, they st
 
 | Role | Read |
 |---|---|
-| Engineer running a benchmark | [01](01-methodology.md) then [04](04-ci-kube-burner.md) |
+| Engineer running a benchmark | [07](07-running-kube-burner.md), then [01](01-methodology.md) for why the numbers are shaped that way |
 | Engineer interpreting results | [02](02-metrics.md) then [03](03-bottlenecks.md) |
 | Engineer fixing a bottleneck | [03](03-bottlenecks.md) — every entry names the file and function |
 | Engineer adding instrumentation | [02](02-metrics.md) table 2 — each row is one small PR |
