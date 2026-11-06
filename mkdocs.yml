@@ -231,6 +231,7 @@ nav:
       - Local Lab (kind): perf-scale/bgp-evpn/06-local-lab.md
       - Running kube-burner: perf-scale/bgp-evpn/07-running-kube-burner.md
       - First CI Results: perf-scale/bgp-evpn/08-first-ci-results.md
+      - Lane Report 2026-11-06: perf-scale/bgp-evpn/09-lane-report-20261106.md
       - Briefing (Oct 2026): perf-scale/bgp-evpn/briefing-oct2026.md
       - Briefing (Nov 2026): perf-scale/bgp-evpn/briefing-nov2026.md
   - Enhancement Proposals:
