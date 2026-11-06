@@ -98,9 +98,17 @@ This is what [03 hypothesis 1](03-bottlenecks.md#1-reconcileall-fan-out) predict
 | **density-deep** | **32.768 s** | **3 of 4** |
 | **churn** | **32.768 s** | **3 of 13** |
 
-The two 40-RA lanes are at the ceiling: their true queue wait is **at least** 32.768 s and the histogram cannot say how much more. The RA reconcile p99 for deep, 2.048 s, is likewise exactly a bucket boundary.
+The two 40-RA lanes are at the ceiling: their true queue wait is **at least** 32.768 s and the histogram cannot say how much more.
 
-This has a direct consequence for reading this briefing: **the wide-to-deep comparison, the RA axis, is not measurable from this run.** Wait p99 appears to move only from 32.178 to 32.768, but that is the instrument saturating, not the system behaving well.
+This has a direct consequence: **the RA axis is not measurable from queue wait.** It appears to move only from 32.178 to 32.768, but that is the instrument saturating, not the system behaving well.
+
+!!! note "Only this one histogram saturated"
+
+    `route_advertisements_reconcile_duration_seconds` uses a different base,
+    `ExponentialBuckets(.005, 2, 14)`, so it reaches 40.96 s. Its deep value of 2.048 s is
+    interpolated inside `[1.28, 2.56]`, not pinned. The same is true of workqueue *work*
+    duration, 2.038 s inside `[1.024, 2.048]`. Only queue *wait* is at its ceiling, because
+    it is the one term that grows with the whole queue rather than with a single item.
 
 The buckets were widened in this cycle from 6 spanning 10 ms to 1000 s, to 16 spanning 1 ms to 32.768 s. That was the right change for 6 nodes and is already insufficient at 12 nodes with 40 RAs. The ladder needs roughly 20 buckets, reaching ~500 s, before the next rung.
 
@@ -189,7 +197,7 @@ CPU remains under 2.3% average everywhere, consistent with the October finding t
 
 ## Caveats
 
-**The RA axis is unmeasured.** Bucket saturation means wide-to-deep produced no usable comparison of queue wait. The ladder has a clean node axis and a clean churn result, but the RA-count slope remains unknown.
+**The RA axis is only partly measured.** Queue wait saturated, so that comparison is unusable. Reconcile duration did not, and reads 1.274 s at 20 RAs against 2.048 s at 40 on the same 12 nodes — a 1.61x rise for a term that should not depend on RA count at all, since each reconcile still writes one object per node. That hints at contention, but both values carry roughly one octave of bucket error, so the ratio could plausibly be anywhere from flat to 4x. It is a lead, not a result.
 
 **Churn amplification is likely understated**, because delete and recreate one second apart appear to coalesce into one fan-out event rather than two.
 
