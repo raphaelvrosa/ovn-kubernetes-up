@@ -193,6 +193,16 @@ as [P1 Activity 1.4b](05-roadmap.md#activity-14b-client-go-request-metrics).
 
 ## frr-k8s compacts the generated configs 9.7x
 
+!!! warning "Superseded 2026-11-06, kept as a record of what these runs measured"
+
+    The November scale ladder does not reproduce these figures: on the identical 6-node
+    20-RA shape it measures about five times the per-node size and a compaction of 2.0x
+    rather than 9.7x. The cause has not been established and is not being chased, so the two
+    sets are treated as different systems rather than reconciled. **Do not use the numbers in
+    this section for planning**; see
+    [briefing-nov2026](briefing-nov2026.md#hypothesis-4-demotion-retracted), which also
+    retracts the hypothesis 4 demotion below.
+
 | Quantity | Value |
 |---|---|
 | Generated FRRConfigurations | 120 objects, 133,728 bytes |
@@ -385,7 +395,7 @@ identical histogram-bucket occupancy, not sub-millisecond resolution. Corrected 
 | 1 | `ReconcileAll()` fan-out | **Untested** — 20 RAs gave exactly 20 reconciles and 0 `unchanged` writes; a create-only lane cannot test it. Earlier CONFIRMED [withdrawn](#corrections) |
 | 2 | `generateFRRConfigurations` recomputed from scratch | **Demoted** — real but not the cost; approx 20 s of handler time against under 2 core-seconds of CPU |
 | 3 | Generated object explosion | Untested — 121 objects is trivial |
-| 4 | `FRRNodeState.status.runningConfig` size | **Demoted** — 9.7x merge compaction, 650x headroom at this shape |
+| 4 | `FRRNodeState.status.runningConfig` size | ~~Demoted~~ **retracted 2026-11-06**, see [briefing-nov2026](briefing-nov2026.md#hypothesis-4-demotion-retracted); the 9.7x compaction and 650x headroom did not reproduce |
 | 5 | `BGPSessionState` object count | **Closed as a harness defect** — an IPv6 neighbour that cannot establish on an IPv4 lane; see [Open anomaly](#open-anomaly-resolved) |
 | 6 | frr-k8s metrics exporter scrape cost | Untested |
 | 7 | `routeimport syncNetwork` | Not a factor at 126 routes (16 ms p99) |

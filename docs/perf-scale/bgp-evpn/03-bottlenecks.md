@@ -224,16 +224,32 @@ whether frr-k8s could accept a node-list rather than requiring one object per no
 
 ### 4. `FRRNodeState.status.runningConfig` size
 
-**Priority**: ~~Critical~~ **Medium**, and a **ceiling rather than a slope**. **Owner**: frr-k8s.
+**Priority**: **High**, and a **ceiling rather than a slope**. **Owner**: frr-k8s.
 
-!!! note "Demoted on measured evidence, 2026-10-09"
+!!! warning "Demoted 2026-10-09, demotion retracted 2026-11-06"
 
-    The first two CI runs measured 2,306 B per node for 20 advertised Layer3 CUDNs across six
-    nodes: 650x headroom to the 1.5 MB limit. frr-k8s **merges** the per-node generated
-    configurations before rendering, so 133,728 bytes of generated FRRConfiguration collapsed
-    into 13,841 bytes of running config, a **9.7x compaction**. The 20 configs share a
-    neighbour and differ only in prefixes, which is the shape that compacts best. This is no
-    longer a candidate for "fails first". See [08 — First CI Results](08-first-ci-results.md).
+    The October demotion rested on 2,306 B per node and a 9.7x compaction, measured at 20
+    advertised Layer3 CUDNs on six nodes. The November scale ladder does not reproduce either
+    figure, and those measurements are not carried forward: the per-node size on the identical
+    shape now reads about five times larger while the generated objects are within 5% of each
+    other. The cause has not been established and is not being chased, so the October and
+    November numbers are treated as belonging to different systems rather than reconciled.
+
+    On the November runs alone, every snapshot below having passed the hook's convergence
+    test:
+
+    | Shape | Config per node | Compaction | Headroom to 1.5 MB |
+    |---|---|---|---|
+    | 6 nodes, 20 RAs | ~11.5 kB | 2.0x | 130x |
+    | 12 nodes, 20 RAs | 11,454 B | 2.1x | 131x |
+    | 12 nodes, 40 RAs | ~20.58 kB | 2.3x | **73x** |
+
+    Compaction is 2.0 to 2.3x rather than 9.7x, and size tracks **network count, not node
+    count**: six and twelve nodes both give ~11.5 kB at 20 RAs, while doubling the networks
+    raises it by 80%. That is ~454 B per network, putting the 1.5 MB limit near **3,300
+    networks** — 3.3x the 1000-CUDN target, before EVPN, whose per-VRF stanzas do not share a
+    neighbour and will merge less well. Close enough to the target to be a real ceiling.
+    See [briefing-nov2026](briefing-nov2026.md#hypothesis-4-demotion-retracted).
 
 **Mechanism.** frr-k8s writes one `FRRNodeState` per node whose `status.runningConfig` holds
 the **entire rendered FRR running configuration as a single string**, alongside
@@ -249,9 +265,11 @@ past it, writes fail outright and the node's state stops updating.
 **Confirm with.** [02 table 3](02-metrics.md#table-3-measured-outside-prometheus) — measure
 `length(status.runningConfig)` across the VRF ladder at 10/100/400/1000 and extrapolate.
 Report the VRF count at which writes fail and the exact apiserver error. **The axis that
-matters is distinct prefixes and VRFs, not generated object count**, since the measured
-compaction shows object count is almost free. EVPN is still the case to watch: `rawconfig.go`
-emits per-VRF stanzas that do not merge the way a shared neighbour does.
+matters is network count, not node count**: the November ladder measured the per-node size
+flat across a doubling of nodes and up 80% across a doubling of networks. The next useful
+measurement is a third point on that axis, 80 networks, to turn a two-point slope into a
+fitted one. EVPN is still the case to watch: `rawconfig.go` emits per-VRF stanzas that do not
+merge the way a shared neighbour does.
 
 **Candidate fix.** Upstream frr-k8s: store a hash plus a truncated or opt-in config body, or
 move the full config to a ConfigMap referenced by the status. This is a cross-project

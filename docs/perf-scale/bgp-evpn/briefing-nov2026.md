@@ -226,21 +226,32 @@ etcd object limit near **3,300 networks**.
 ## Hypothesis 4 demotion: retracted
 
 October demoted `FRRNodeState.status.runningConfig` size from Critical to Medium on a measured
-9.7x compaction and 650x headroom. Neither figure survives.
+9.7x compaction and 650x headroom. Those figures are superseded. **The October measurements
+are not carried forward and nothing below depends on them**; the current reading of this
+hypothesis rests only on the November runs, where every quoted snapshot passed the
+[convergence test](#result-4-the-settle-heuristic-fails-intermittently-and-spread-proves-it).
 
 | Shape | Config per node | Compaction | Headroom to 1.5 MB |
 |---|---|---|---|
-| 6 nodes, 20 RAs (October) | 2,306 B | 9.7x | 650x |
-| 6 nodes, 20 RAs (November) | 11,512 B | 2.0x | 130x |
-| 12 nodes, 40 RAs (November) | 20,579 B | 2.3x | **73x** |
+| 6 nodes, 20 RAs | 11,609 B / 11,512 B | 2.0x | 130x |
+| 12 nodes, 20 RAs | 11,454 B | 2.1x | 131x |
+| 12 nodes, 40 RAs | 20,587 B / 20,579 B | 2.3x | **73x** |
 
-Compaction is **2.0 to 2.3x, not 9.7x**, and the axis is network count rather than node count.
-**Hypothesis 4 should return to High.**
+Two properties follow, and both are visible within this run set alone:
 
-**One unexplained change blocks acting on this.** The 6-node 20-RA shape is identical between
-October and November, yet per-node config grew roughly **5x** while the generated objects grew
-only 4.7% (133,728 B to 139,968 B). The inputs barely moved and the merged output quintupled.
-That needs bisecting before the numbers above are relied on in either direction.
+**Config size does not depend on node count.** Six nodes and twelve both give ~11.5 kB per node
+at 20 RouteAdvertisements. Adding nodes adds objects but not per-node configuration, which is
+consistent with each node carrying only its own view.
+
+**It grows with network count, at roughly 454 B per network.** Fitting the two RA points,
+11.5 kB at 20 and 20.58 kB at 40, gives a slope of 454 B and an intercept near 2.4 kB. The
+1.5 MB etcd object limit therefore arrives at roughly **3,300 networks** — only 3.3x beyond
+the 1000-CUDN target, and that is before EVPN, whose per-VRF stanzas do not share a neighbour
+and so will not merge as well.
+
+Compaction is **2.0 to 2.3x** and stable across all three shapes. **Hypothesis 4 returns to
+High**: it is a genuine ceiling within sight of the target, not the distant one October
+described.
 
 ---
 
@@ -288,10 +299,9 @@ cleanly, so settle when `max - min` falls below a small fraction of the value, k
 stability check as the fallback for workloads where nodes legitimately differ. Without it,
 roughly half the `FRRNodeState` readings are unusable and which half is a coin toss.
 
-**Bisect the 5x config growth** between October and November on the unchanged 6-node 20-RA
-shape. Cheaper things to try first: diff a rendered `runningConfig` against the October base,
-read the log over `routeadvertisements/controller.go` and `rawconfig.go` for that window, and
-check whether the frr-k8s pin moved. Full bisect only if those come up empty.
+**Put a third point on the network axis.** The 3,300-network ceiling is a line through two
+points, 20 RAs and 40. An 80-RA lane would turn it into a fitted slope and show whether growth
+is linear or super-linear well before anything approaches the limit.
 
 **Run the threadiness A/B** ([P2b](05-roadmap.md#phase-p2b-threadiness-ab)). It remains cheap
 and it falsifies the model: if four workers do not move wait p99, the limit is not
@@ -320,6 +330,14 @@ snapshots whose spread says they converged.
 
 **The RA axis rests on two points** — 20 and 40 — and the node axis on two, 6 and 12. The 0.5%
 fit across three lanes is striking, but it is a line through few points, not a fitted curve.
+The same applies to the 3,300-network config ceiling, which extrapolates a two-point slope more
+than fortyfold.
+
+**October figures are not comparable and are not used.** Per-node config on the identical
+6-node 20-RA shape reads about five times larger than in October while the generated objects
+are within 5% of each other. The cause has not been established and is not being pursued; the
+October numbers are treated as belonging to a different system rather than reconciled with
+these. Any trend that spans the two dates would be unsound.
 
 **All of this is kind.** Twelve nodes sharing one kernel, one disk and one apiserver on a
 32-core runner. The proportionality is worth extrapolating; the absolute latencies are not.
