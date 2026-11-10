@@ -142,6 +142,30 @@ nav:
       - Debugging: developer-guide/debugging.md
       - Release Guide: developer-guide/release.md
       - Maintenance Guide: developer-guide/maintenance.md
+      - BGP and EVPN Engineering Guide:
+        - developer-guide/bgp-evpn/index.md
+        - Glossary: developer-guide/bgp-evpn/glossary.md
+        - Concepts: developer-guide/bgp-evpn/01-concepts.md
+        - Configuration and Running Modes: developer-guide/bgp-evpn/02-configuration-and-running-modes.md
+        - API - RouteAdvertisements: developer-guide/bgp-evpn/03-api-routeadvertisements.md
+        - API - VTEP: developer-guide/bgp-evpn/04-api-vtep.md
+        - API - CUDN Transport and EVPN: developer-guide/bgp-evpn/05-api-cudn-transport.md
+        - FRRConfiguration Contract: developer-guide/bgp-evpn/06-frrconfiguration-contract.md
+        - Cluster Manager - RouteAdvertisements Controller: developer-guide/bgp-evpn/07-cm-routeadvertisements-controller.md
+        - Cluster Manager - Managed BGP Controller: developer-guide/bgp-evpn/08-cm-managed-bgp-controller.md
+        - Cluster Manager - VTEP Controller: developer-guide/bgp-evpn/09-cm-vtep-controller.md
+        - Cluster Manager - CUDN Transport and No-Overlay Validation: developer-guide/bgp-evpn/10-cm-cudn-transport-and-no-overlay.md
+        - Network Manager Propagation: developer-guide/bgp-evpn/11-network-manager-propagation.md
+        - ovnkube-controller - Advertised Networks: developer-guide/bgp-evpn/12-ovnkube-controller-advertised-networks.md
+        - ovnkube-controller - Route Import: developer-guide/bgp-evpn/13-ovnkube-controller-route-import.md
+        - ovnkube-controller - EVPN Topology: developer-guide/bgp-evpn/14-ovnkube-controller-evpn-topology.md
+        - ovnkube-node - VRFs and Host Datapath: developer-guide/bgp-evpn/15-ovnkube-node-vrf-and-host-datapath.md
+        - ovnkube-node - EVPN Datapath: developer-guide/bgp-evpn/16-ovnkube-node-evpn-datapath.md
+        - End-to-End Workflows: developer-guide/bgp-evpn/17-end-to-end-workflows.md
+        - Performance and Scale: developer-guide/bgp-evpn/18-performance-and-scale.md
+        - Testing and CI: developer-guide/bgp-evpn/19-testing-and-ci.md
+        - Review Checklist: developer-guide/bgp-evpn/20-review-checklist.md
+        - References: developer-guide/bgp-evpn/references.md
   - API Reference Guide:
       - api-reference/index.md
       - Introduction: api-reference/introduction.md
@@ -219,6 +243,22 @@ nav:
       - Open vSwitch: observability/metrics/ovs.md
     - SDN Dashboard: observability/sdn-dashboard.md
     - OVN observability: observability/ovn-observability.md
+  - Performance and Scale:
+    - BGP and EVPN:
+      - perf-scale/bgp-evpn/index.md
+      - Glossary: perf-scale/bgp-evpn/glossary.md
+      - Background (CUDN, VRF, BGP, EVPN): perf-scale/bgp-evpn/00-background.md
+      - Benchmarking Methodology: perf-scale/bgp-evpn/01-methodology.md
+      - Metrics and Instrumentation: perf-scale/bgp-evpn/02-metrics.md
+      - Bottleneck Analysis: perf-scale/bgp-evpn/03-bottlenecks.md
+      - CI and kube-burner: perf-scale/bgp-evpn/04-ci-kube-burner.md
+      - Roadmap: perf-scale/bgp-evpn/05-roadmap.md
+      - Local Lab (kind): perf-scale/bgp-evpn/06-local-lab.md
+      - Running kube-burner: perf-scale/bgp-evpn/07-running-kube-burner.md
+      - First CI Results: perf-scale/bgp-evpn/08-first-ci-results.md
+      - Lane Report 2026-11-06: perf-scale/bgp-evpn/09-lane-report-20261106.md
+      - Briefing (Oct 2026): perf-scale/bgp-evpn/briefing-oct2026.md
+      - Briefing (Nov 2026): perf-scale/bgp-evpn/briefing-nov2026.md
   - Enhancement Proposals:
     - okeps/index.md
     # - FeatureName: okeps/<filename.md>
