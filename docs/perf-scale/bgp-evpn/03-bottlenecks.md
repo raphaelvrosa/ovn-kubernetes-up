@@ -1,6 +1,6 @@
 # 03 — Bottleneck Analysis
 
-Twelve ranked hypotheses about where BGP and EVPN will fail first, each with its mechanism,
+Thirteen ranked hypotheses about where BGP and EVPN will fail first, each with its mechanism,
 the metric that confirms or refutes it, a candidate fix, and which project owns it.
 
 ## Contents
@@ -88,7 +88,21 @@ transaction cost**. Those are the first two rows of
 
 ### 1. `ReconcileAll()` fan-out
 
-**Priority**: Critical. **Owner**: ovn-kubernetes. **Status: still untested.**
+**Priority**: Critical. **Owner**: ovn-kubernetes. **Status: CONFIRMED as amplification; cost
+at scale unmeasured.**
+
+!!! success "Confirmed by the churn lane, 2026-11-06, and re-measured 2026-11-16"
+
+    The churn lane, built for this hypothesis, has now run four times. Each time 78 to 80% of
+    RouteAdvertisements reconciles wrote nothing, and each wasted reconcile regenerated exactly
+    one configuration per node. See [briefing-nov2026](briefing-nov2026.md#result-3-hypothesis-1-confirmed-and-reproduced).
+
+    **The cost per wasted reconcile is small at 12 nodes.** On means, the churn lane did 4.8x
+    the reconciles of `deep` and used the same total worker time (48.6 s against 48.7 s), so
+    each wasted reconcile costs a few milliseconds at most. The amplification is real. Whether
+    it hurts depends on how the cost of generation (hypothesis 2) grows with N and RA count,
+    and that is not yet measured. See
+    [briefing-open-prs-nov2026](briefing-open-prs-nov2026.md#3-re-rank-hypothesis-1-by-measuring-the-cost-of-a-wasted-reconcile-as-n-grows).
 
 !!! warning "A confirmation claimed here on 2026-10-09 has been withdrawn"
 
@@ -157,6 +171,14 @@ threadiness. The index is the real fix; threadiness only buys headroom.
     the whole second. The cross-reconcile caching this entry proposes therefore buys little on
     its own; the per-reconcile **write count** is what matters, which is hypothesis 3's axis.
     Re-test on the wide lane, where the per-node loops grow.
+
+!!! note "Figures corrected 2026-11-16"
+
+    The 1.02 s work p99 above is an artefact of buckets that double in width: it sits 99% of
+    the way through the 0.512 to 1.024 s bucket whatever the true values are. The first run
+    with means gives 0.59 s of work per reconcile at six nodes, about 100 ms per write. The
+    conclusion stands: the time is apiserver round trips, not computation. See
+    [10 — Lane Report 2026-11-16](10-lane-report-20261116.md).
 
 **Mechanism.** `generateFRRConfigurations` (L488-925) plus `generateFRRConfiguration` (L966)
 rebuild the complete desired state on every reconcile. Specific costs inside one call:
@@ -522,6 +544,17 @@ caching `collectEVPNNetworks` behind a network-manager generation counter.
     identical bucket occupancy, not sub-millisecond precision. The ratio is robust; the
     absolute figures are good to about one octave.
 
+!!! note "Re-measured on means, 2026-11-16"
+
+    The p99 figures above only locate each value within a power-of-two bucket. On means
+    ([10 — Lane Report](10-lane-report-20261116.md)), wait over work is 9.0x at 20 RAs and
+    18.3x at 40. Four workers cut the mean wait 3.5x and raise the work per item 1.75x, so
+    throughput rises 2.3x. Each write goes from 101 ms to 177 ms with four in flight, while
+    cluster-manager CPU stays under 5%, so the contention is on the server side. The leading
+    suspect is admission ([hypothesis 13](#13-frrconfiguration-admission-is-oexisting-configurations)).
+    The confirmation stands and the knob is still worth having. Its ceiling is set by that
+    contention, not by the worker count.
+
 **Mechanism.** The shared controller framework
 (`pkg/controller/controller.go`) supports `Threadiness`, `RateLimiter` and `MaxAttempts`, but:
 
@@ -551,6 +584,43 @@ shared state requires checking for races first — this is not unconditionally s
 
 ---
 
+### 13. FRRConfiguration admission is O(existing configurations)
+
+**Priority**: Critical. **Owner**: frr-k8s, with the load landing on the apiserver.
+**Status: supported by downstream reports and in-lane CPU; latency curve unmeasured.**
+Added 2026-11-19.
+
+**Mechanism.** Every FRRConfiguration create or update passes frr-k8s's validating webhook,
+`frrconfigurationsvalidationwebhook.metallb.io`, served from the `frr-k8s-statuscleaner`
+pod. `validateConfig` lists every Node and every FRRConfiguration live from the apiserver,
+unpaginated. Then, for each node the new configuration selects, it resolves the selector of
+every existing configuration through a 300-entry LRU and validates the merged result. The
+ovn-kubernetes controller blocks on each write.
+
+**Why it scales badly.** ovn-kubernetes creates M = RAs x nodes configurations, and each
+admission does O(M) work. Creating all of them costs O(M²) admission work and O(M²) LIST bytes
+served. Every source of parallelism (worker count, #7304) multiplies the LISTs in flight.
+Above 300 nodes the per-node hostname selectors outnumber the LRU, so nearly every lookup
+misses.
+
+**Evidence.**
+
+- Downstream at 24 nodes and 300 RAs: mean admission latency 407 ms, and more than 90% of a
+  60-minute RA-acceptance p99 attributed to the webhook (frr-k8s #536, ovn-kubernetes #7304).
+- In our lanes, webhook CPU per write rises from 15.7 ms to 28.2 ms between 120 and 480
+  existing objects, while apiserver CPU per write does not rise. See
+  [briefing-open-prs-nov2026](briefing-open-prs-nov2026.md#webhook-cpu-per-write-from-existing-artifacts).
+
+**Confirm with.** `apiserver_admission_webhook_admission_duration_seconds` and the LIST rate on
+FRRConfigurations and Nodes, against the existing count. The `bgp-ra-density-seeded` lane
+grows that count without changing the controller's work.
+
+**Candidate fix.** Upstream: cached reads (frr-k8s #536), resolving each selector once per
+admission (#529), and an LRU sized for per-node selectors (#537). On the ovn-kubernetes side,
+fewer generated objects (hypothesis 3) is the structural answer.
+
+---
+
 ## Ownership summary
 
 Answers goal 3 — how the pain distributes across the integration.
@@ -570,8 +640,10 @@ Answers goal 3 — how the pain distributes across the integration.
 | 10 Isolation `O(subnets^2)` | Yes | | | Yes (flow compilation) |
 | 11 Node full resyncs | Yes | | | Yes (OVS scans) |
 | 12 Hardcoded concurrency | Yes | | | |
+| 13 Admission webhook cost | Yes (object count) | Yes | | |
 
-Five of twelve involve frr-k8s or FRR. Two are wholly owned upstream. That ratio is the reason
+Six of thirteen involve frr-k8s or FRR. Two are wholly owned upstream, and the most expensive
+one measured downstream, 13, is mostly frr-k8s's. That ratio is the reason
 [roadmap P5](05-roadmap.md) opens the upstream conversation early rather than at the end.
 
 ---

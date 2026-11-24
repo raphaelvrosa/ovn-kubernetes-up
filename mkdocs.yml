@@ -257,8 +257,10 @@ nav:
       - Running kube-burner: perf-scale/bgp-evpn/07-running-kube-burner.md
       - First CI Results: perf-scale/bgp-evpn/08-first-ci-results.md
       - Lane Report 2026-11-06: perf-scale/bgp-evpn/09-lane-report-20261106.md
+      - Lane Report 2026-11-16: perf-scale/bgp-evpn/10-lane-report-20261116.md
       - Briefing (Oct 2026): perf-scale/bgp-evpn/briefing-oct2026.md
       - Briefing (Nov 2026): perf-scale/bgp-evpn/briefing-nov2026.md
+      - Briefing (Open PRs, Nov 2026): perf-scale/bgp-evpn/briefing-open-prs-nov2026.md
   - Enhancement Proposals:
     - okeps/index.md
     # - FeatureName: okeps/<filename.md>
