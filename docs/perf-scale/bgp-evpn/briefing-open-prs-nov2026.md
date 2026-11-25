@@ -2,6 +2,33 @@
 
 **2026-11-19, updated 2026-11-23 and 2026-11-25**
 
+!!! note "Update 2026-11-25, evening: H13 measured, #7257 merged"
+
+    Run [45667397809](https://github.com/ovn-kubernetes/ovn-kubernetes/actions/runs/45667397809)
+    completed the seeded lane for the first time. Full numbers are in
+    [lane report 11](11-lane-report-20261125.md).
+
+    **Admission grows with the configurations that already exist.** With 1,000 inert
+    FRRConfigurations seeded before the RAs, admission rose from 91 to 158 ms per write. Webhook
+    CPU per write rose from 32 to 88 ms. That is about 67 ms per 1,000 existing objects, from two
+    points. Extended linearly, it reaches the 407 ms frr-k8s #536 reports downstream at about
+    5,000 objects. Hypothesis 13 holds, and #536 is the lever for it.
+
+    **The parallelism slowdown tracks CPU throttling.** The webhook was throttled in 0%, 18% and
+    32% of CFS periods at one, two and four workers, while admission read 91, 106 and 171 ms.
+    With the seeds it was throttled 37% at one worker. The 500m limit is now the likely cause,
+    though only raising it would confirm that.
+
+    **The webhook runs out of memory at 20 writes per second.** The first seeded attempt
+    OOM-killed it against its 128Mi limit with about 800 seeds, and it crash-looped for an
+    hour. Each admission lists every existing configuration, so its memory grows with the
+    objects and with the admissions in flight. The lane now seeds 1,000 at 5 per second.
+
+    **#7257 merged on 2026-11-25**, so master reconciles RouteAdvertisements with four workers.
+    The throttled configuration above is now the default. #7077 was rebased onto it: its knob
+    defaults to 4, and every lane but the two threadiness lanes pins one worker so the runs stay
+    comparable. They do: three runs agree on 98 to 104 ms per write.
+
 !!! note "Update 2026-11-25: second means run, admission measured"
 
     Run [45302750158](https://github.com/ovn-kubernetes/ovn-kubernetes/actions/runs/45302750158)
@@ -262,7 +289,7 @@ sustained about 22, so that limiter is not what binds.
 no shorter than 22.7 s (total worker time over four workers), so at least 0.47 cores on
 average. That is at the limit, and admission latency doubles while CPU per write falls, which
 is what CFS throttling looks like. `frrWebhookThrottledPeriodRate` over `frrWebhookPeriodRate`
-now measures it.
+now measures it: run 45667397809 read 0%, 18% and 32% throttled at one, two and four workers.
 
 **Confirm with.** `apiserver_admission_webhook_admission_duration_seconds` for the
 FRRConfiguration webhook, and `apiserver_request_total{resource=~"frrconfigurations|nodes",
@@ -280,8 +307,8 @@ State as of 2026-11-25.
 
 | PR | Repo | Title | Bottleneck | Review state |
 |---|---|---|---|---|
-| [#7077](https://github.com/ovn-kubernetes/ovn-kubernetes/pull/7077) | ovnk | BGP RA density lanes | Measurement; carries the threadiness knob | Changes requested; the reviewer's question has been answered |
-| [#7257](https://github.com/ovn-kubernetes/ovn-kubernetes/pull/7257) | ovnk | RA controller with four workers | H12 | Changes requested; author proposes dropping it in favour of the #7077 knob |
+| [#7077](https://github.com/ovn-kubernetes/ovn-kubernetes/pull/7077) | ovnk | BGP RA density lanes | Measurement; carries the threadiness knob | Changes requested; the reviewer's question has been answered. Rebased onto #7257 on 2026-11-25 |
+| [#7257](https://github.com/ovn-kubernetes/ovn-kubernetes/pull/7257) | ovnk | RA controller with four workers | H12 | **Merged 2026-11-25** |
 | [#7304](https://github.com/ovn-kubernetes/ovn-kubernetes/pull/7304) | ovnk | Parallelise FRR config writes | H12 / H13 | Review required again after the approval lapsed |
 | [#7255](https://github.com/ovn-kubernetes/ovn-kubernetes/pull/7255) | ovnk | Lost NAD annotation updates | Correctness prerequisite for H12 and #7252 | Changes requested (shorten comment, fold tests) |
 | [#7252](https://github.com/ovn-kubernetes/ovn-kubernetes/pull/7252) | ovnk | Scope RA update reconciliation in networkmanager | H1, consumer side | **Merged 2026-11-20**, before #7255 |
@@ -298,6 +325,7 @@ State as of 2026-11-25.
 **#7257** hardcodes `Threadiness: 4` on the RA controller. **#7077** (commit `76f6ba1d0`)
 instead adds `--cluster-manager-route-advertisements-threadiness`, default 1. The #7257
 author has proposed abandoning it for the knob, with the value set downstream.
+**Status 2026-11-25**: #7257 merged instead, and #7077's knob was rebased to default to 4.
 **#7304** is orthogonal to both. Inside one reconcile it issues up to four creates or updates
 concurrently, waits for all of them, and only then deletes obsolete configurations serially.
 
@@ -464,8 +492,8 @@ in-flight and rest-client queries are still to add.
 | 7 | Route import | #7250, constant factor | Incremental apply untouched |
 | 8, 8b | EVPN | — | **Nothing measured or proposed** |
 | 9, 10, 11 | EgressIP, isolation, node resyncs | — | Untested |
-| 12 | Threadiness | Knob, #7257, #7304 | Contention located in admission (2026-11-25); webhook CPU limit suspected, not confirmed |
-| 13 | Webhook admission (proposed) | frr-k8s #536, #529, #537 | Instrumented; 95% of a write; slope with M awaits the seeded lane |
+| 12 | Threadiness | Knob, #7257 (merged), #7304 | Contention in admission; webhook CPU throttling tracks workers (0, 18, 32%); limit not yet raised to confirm |
+| 13 | Webhook admission | frr-k8s #536, #529, #537 | **Confirmed**: about 67 ms per 1,000 existing configurations, two points |
 
 ---
 
@@ -502,6 +530,11 @@ Without it, no PR in the parallelism or admission group can be sized, and the so
   neighbour as `address: 2001:db8::`, read by YAML as a mapping key. The address is now quoted
   (`1b0791a7f`); the stripped template decodes and the rendered seeds are byte-identical. The
   rerun also carries the throttling query and the per-write fit.
+- **Status 2026-11-25, evening**: the rerun, run 45641195655, created seeds at 20 per second and
+  the webhook was OOM-killed against its 128Mi limit with about 800 created. At 1,000 seeds and
+  5 per second, run 45667397809 completed: admission went from 91 to 158 ms, about 67 ms per
+  1,000 existing objects. The deliverable now needs a second seeded size, to test whether the
+  growth is linear, and the #536 A/B.
 
 ### 2. Run a composed A/B matrix once the parallelism PRs merge
 
@@ -573,9 +606,10 @@ as its own section.
 
 ## Caveats
 
-- **Two means runs.** Runs 43959763061 and 45302750158 agree on total work within 2% in every
-  lane they share, across #7138's change to the reconcile count. That is a replication of
-  the cost per write, not of the parallelism figures, where threads read 177 and 189 ms.
+- **Four means runs.** Runs 43959763061, 45302750158, 45641195655 and 45667397809 agree on the
+  cost per write within about 5% in every single-worker lane, across #7138's change to the
+  reconcile count and the rebase onto #7257. The last three also agree on admission at each
+  worker count within 4%. The seeded figure comes from one run.
 - **kind.** Twelve nodes share one kernel, one disk and one apiserver. The 100 ms write and the
   75% contention are properties of that box. Ratios transfer better than absolute values.
 - **Downstream figures are second-hand.** The 407 ms, 60 min and 288 s figures come from PR
@@ -600,6 +634,7 @@ as its own section.
 |---|---|
 | [03 — Bottleneck Analysis](03-bottlenecks.md) | The hypotheses this briefing maps PRs onto |
 | [10 — Lane Report 2026-11-16](10-lane-report-20261116.md) | Every baseline number above, generated from run 43959763061 |
+| [11 — Lane Report 2026-11-25](11-lane-report-20261125.md) | The seeded lane, throttling and admission figures, generated from run 45667397809 |
 | [briefing-nov2026](briefing-nov2026.md) | The p99-based model this briefing revises |
 | [05 — Roadmap](05-roadmap.md) | Activities 1.4b, 3.1 and 4.1 referenced above |
 | [Developer guide 18](../../developer-guide/bgp-evpn/18-performance-and-scale.md) | Code-level cost model |

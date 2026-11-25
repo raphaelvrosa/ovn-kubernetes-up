@@ -577,6 +577,15 @@ caching `collectEVPNNetworks` behind a network-manager generation counter.
     query is in the lanes to confirm it. See
     [briefing-open-prs-nov2026](briefing-open-prs-nov2026.md#admission-measured-run-45302750158).
 
+!!! note "Throttling tracks the contention, 2026-11-25"
+
+    Runs 45641195655 and 45667397809 measure the webhook container's CFS throttling. It was
+    throttled in 0–1%, 17–18% and 29–32% of periods at one, two and four workers, in step with
+    admission. The CPU limit is now the likely cause of the contention. Raising it and seeing
+    admission flatten would confirm that. #7257, merged on 2026-11-25, sets four workers on
+    master, so this is now the default configuration. See
+    [lane report 11](11-lane-report-20261125.md).
+
 **Mechanism.** The shared controller framework
 (`pkg/controller/controller.go`) supports `Threadiness`, `RateLimiter` and `MaxAttempts`, but:
 
@@ -609,8 +618,19 @@ shared state requires checking for races first — this is not unconditionally s
 ### 13. FRRConfiguration admission is O(existing configurations)
 
 **Priority**: Critical. **Owner**: frr-k8s, with the load landing on the apiserver.
-**Status: supported by downstream reports and in-lane CPU; latency curve unmeasured.**
+**Status: confirmed in-lane, 2026-11-25; slope from two points.**
 Added 2026-11-19.
+
+!!! success "Confirmed by the seeded lane, 2026-11-25"
+
+    In run 45667397809, `bgp-ra-density-seeded` creates 1,000 inert FRRConfigurations before
+    running deep's workload. Against deep, admission rose from 91 to 158 ms per write, and
+    webhook CPU per write from 32 to 88 ms. That is about 67 ms of admission per 1,000 existing
+    objects. Extended linearly, it gives the downstream 407 ms at about 5,000. At the same
+    single worker the webhook was throttled in 37% of CFS periods, against 0% in deep. An
+    earlier attempt seeding at 20 per second OOM-killed the webhook against its 128Mi limit at
+    about 800 objects: the live LISTs cost memory as well as time. See
+    [lane report 11](11-lane-report-20261125.md).
 
 !!! note "Admission measured, 2026-11-25"
 
