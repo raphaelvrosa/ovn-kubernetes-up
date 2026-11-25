@@ -104,6 +104,17 @@ at scale unmeasured.**
     and that is not yet measured. See
     [briefing-open-prs-nov2026](briefing-open-prs-nov2026.md#3-re-rank-hypothesis-1-by-measuring-the-cost-of-a-wasted-reconcile-as-n-grows).
 
+!!! note "A confirmation pass per RA, 2026-11-25"
+
+    Since #7138 the RA controller requeues each RouteAdvertisements when the informer
+    observes its NAD intent patch (`nadNeedsUpdate` in
+    `pkg/clustermanager/routeadvertisements/controller.go`). That pass regenerates every
+    configuration and writes nothing. In run 45302750158 every create-only lane reconciles
+    each RA exactly twice and records one `unchanged` per generated object, a 50% wasted share
+    with no churn at all. Total work is unchanged within 2% of the single-pass run, so at 12
+    nodes the pass costs milliseconds, like every other wasted reconcile. It is a fixed 2x on
+    the amplification this hypothesis describes, and it grows with generation cost.
+
 !!! warning "A confirmation claimed here on 2026-10-09 has been withdrawn"
 
     This was briefly marked CONFIRMED on the grounds that the
@@ -555,6 +566,17 @@ caching `collectEVPNNetworks` behind a network-manager generation counter.
     The confirmation stands and the knob is still worth having. Its ceiling is set by that
     contention, not by the worker count.
 
+!!! note "Contention located in admission, 2026-11-25"
+
+    Run 45302750158 adds a 2-worker lane and the admission query. Per-write cost is 99, 117
+    and 189 ms at one, two and four workers, so throughput is 1.7x at two and 2.1x at four.
+    Admission accounts for 95% of the write at each point (90, 106 and 174 ms). The webhook's
+    client allows about 10 admissions per second, and four workers sustained about 22, so the
+    client rate limit is not the cause. The webhook container's 500m CPU limit is the leading
+    suspect: at four workers it averages at least 0.47 cores over the burst. A throttling
+    query is in the lanes to confirm it. See
+    [briefing-open-prs-nov2026](briefing-open-prs-nov2026.md#admission-measured-run-45302750158).
+
 **Mechanism.** The shared controller framework
 (`pkg/controller/controller.go`) supports `Threadiness`, `RateLimiter` and `MaxAttempts`, but:
 
@@ -589,6 +611,14 @@ shared state requires checking for races first — this is not unconditionally s
 **Priority**: Critical. **Owner**: frr-k8s, with the load landing on the apiserver.
 **Status: supported by downstream reports and in-lane CPU; latency curve unmeasured.**
 Added 2026-11-19.
+
+!!! note "Admission measured, 2026-11-25"
+
+    In run 45302750158 admission is about 90 ms of a 95 ms write at one worker, flat from 120
+    to 480 objects. At this scale admission dominates the write, so the webhook sets RA
+    throughput, whether or not its cost grows with M. Over 120 to 480 objects the predicted
+    slope adds only about 16 ms, which this run cannot separate from noise. The seeded lane at
+    2,000 objects is still the test of the O(M) claim.
 
 **Mechanism.** Every FRRConfiguration create or update passes frr-k8s's validating webhook,
 `frrconfigurationsvalidationwebhook.metallb.io`, served from the `frr-k8s-statuscleaner`

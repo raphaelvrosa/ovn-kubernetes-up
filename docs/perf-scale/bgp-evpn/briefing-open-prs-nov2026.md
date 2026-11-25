@@ -1,6 +1,31 @@
 # BGP/EVPN Open Pull Requests: Bottleneck Briefing
 
-**2026-11-19, updated 2026-11-23**
+**2026-11-19, updated 2026-11-23 and 2026-11-25**
+
+!!! note "Update 2026-11-25: second means run, admission measured"
+
+    Run [45302750158](https://github.com/ovn-kubernetes/ovn-kubernetes/actions/runs/45302750158)
+    is the first with the admission and write queries. Six lanes ran; the seeded lane failed on
+    a template bug, since fixed (see [recommendation 1](#1-isolate-the-webhook-term-h13-highest-priority)).
+
+    **Admission is about 90 of the 95 ms a write takes.** The apiserver's own share is about
+    5 ms. At one worker, RA throughput is set by the frr-k8s webhook, not by ovn-kubernetes,
+    which makes frr-k8s #536 (407 ms to 16 ms downstream) the largest lever in this set by
+    measurement, not just by inference. Admission stays at 90 ms from 120 to 480 objects, so
+    this run neither confirms nor refutes the O(M) slope of hypothesis 13.
+
+    **The parallelism contention is in admission.** Admission rises with workers in step with
+    the write: 90, 106 and 174 ms at one, two and four workers. The webhook container has a
+    500m CPU limit, and with four workers it must average at least 0.47 cores during the
+    burst. CPU throttling is the leading suspect and is now queried.
+
+    **#7138, merged 2026-11-20 and not in the original list, adds one reconcile per RA.** The
+    RA controller requeues each RA when the informer sees its NAD intent patch, and that pass
+    writes nothing. Reconciles per RA double and the mean per reconcile halves; the cost per
+    write and the total work do not move (99 ms, within 2% of run 43959763061). The report now
+    normalises by writes. See [what the numbers support](#what-the-numbers-support).
+
+    **#7320 merged on 2026-11-24.** As predicted, it changes nothing in these lanes.
 
 !!! note "Update 2026-11-23"
 
@@ -127,6 +152,24 @@ remark on #7257 that eight workers "didn't buy much extra speed".
 difference, so each costs a few milliseconds at most: regenerate twelve objects, run
 `DeepEqual`, write nothing.
 
+**The same holds after #7138, once work is counted per write.** Run 45302750158 runs on a
+controller that reconciles every RA a second time, so its per-reconcile means halve. Divided
+by real writes (create, update, delete), total work gives:
+
+| Lane | Workers | Reconciles | Writes | Total work | Work / write | Wait / total work |
+|---|---|---|---|---|---|---|
+| density | 1 | 40 | 120 | 11.9 s | 99.4 ms | 0.464 |
+| wide | 1 | 40 | 240 | 23.8 s | 99.2 ms | 0.474 |
+| deep | 1 | 80 | 480 | 47.8 s | 99.6 ms | 0.472 |
+| churn | 1 | 221 | 480 | 48.9 s | 102.0 ms | — |
+| threads2 | 2 | 81 | 480 | 56.2 s | 117.2 ms | 0.219 |
+| threads | 4 | 81 | 480 | 90.6 s | 188.8 ms | 0.098 |
+
+The fit spread falls to 0.5% for work per write and 2.2% for the queue factor. The 2-worker
+midpoint shows the contention is not linear in writes in flight: per-write cost rises 18% from
+one to two workers and 61% more from two to four, so throughput is 1.7x at two workers and
+2.1x at four.
+
 ### Extrapolation
 
 These predictions hold only while `t_write` stays at the kind figure. The next section
@@ -193,6 +236,34 @@ The integration includes each job's idle time, so the small lanes read slightly 
 slope rests on three points. Latency is not CPU. The seeded lane exists to replace this
 estimate with a measured curve.
 
+#### Admission measured, run 45302750158
+
+| Lane | Workers | Written | Admission mean | Write mean | Webhook CPU / write |
+|---|---|---|---|---|---|
+| density | 1 | 120 | 90.6 ms | 95.1 ms | 17.3 ms |
+| wide | 1 | 240 | 89.8 ms | 94.8 ms | 14.6 ms |
+| deep | 1 | 480 | 90.2 ms | 95.2 ms | 30.4 ms |
+| threads2 | 2 | 480 | 106.5 ms | 112.3 ms | 27.4 ms |
+| threads | 4 | 480 | 173.7 ms | 180.4 ms | 22.3 ms |
+
+**Admission is 95% of the write at every worker count.** The webhook spends 15 to 30 ms of CPU
+on each, so most of its 90 ms is waiting: the two live LISTs, or the CPU limit below. Admission
+does not move between 120 and 480 objects. The 44 µs-per-object CPU slope above would add only
+about 16 ms over that range, within what this run can resolve, so H13's slope is still
+unmeasured. The webhook CPU per write is too noisy to carry it: density now reads higher than
+wide.
+
+**Not the client rate limit.** The webhook reads through controller-runtime's API reader at 20
+requests per second, two per admission, so about 10 admissions per second. Four workers
+sustained about 22, so that limiter is not what binds.
+
+**The CPU limit is the leading suspect.** frr-k8s's manifest gives the webhook container
+`limits.cpu: 500m`. With four workers it used about 10.7 core-seconds on 480 writes, in a burst
+no shorter than 22.7 s (total worker time over four workers), so at least 0.47 cores on
+average. That is at the limit, and admission latency doubles while CPU per write falls, which
+is what CFS throttling looks like. `frrWebhookThrottledPeriodRate` over `frrWebhookPeriodRate`
+now measures it.
+
 **Confirm with.** `apiserver_admission_webhook_admission_duration_seconds` for the
 FRRConfiguration webhook, and `apiserver_request_total{resource=~"frrconfigurations|nodes",
 verb="LIST"}`, plotted against existing FRRConfiguration count. Our profiles contain neither
@@ -205,17 +276,18 @@ writing fewer objects is the structural fix (03 hypothesis 3, candidate fix 2).
 
 ## The PRs, by bottleneck
 
-State as of 2026-11-19.
+State as of 2026-11-25.
 
 | PR | Repo | Title | Bottleneck | Review state |
 |---|---|---|---|---|
 | [#7077](https://github.com/ovn-kubernetes/ovn-kubernetes/pull/7077) | ovnk | BGP RA density lanes | Measurement; carries the threadiness knob | Changes requested; the reviewer's question has been answered |
 | [#7257](https://github.com/ovn-kubernetes/ovn-kubernetes/pull/7257) | ovnk | RA controller with four workers | H12 | Changes requested; author proposes dropping it in favour of the #7077 knob |
-| [#7304](https://github.com/ovn-kubernetes/ovn-kubernetes/pull/7304) | ovnk | Parallelise FRR config writes | H12 / H13 | Approved |
+| [#7304](https://github.com/ovn-kubernetes/ovn-kubernetes/pull/7304) | ovnk | Parallelise FRR config writes | H12 / H13 | Review required again after the approval lapsed |
 | [#7255](https://github.com/ovn-kubernetes/ovn-kubernetes/pull/7255) | ovnk | Lost NAD annotation updates | Correctness prerequisite for H12 and #7252 | Changes requested (shorten comment, fold tests) |
 | [#7252](https://github.com/ovn-kubernetes/ovn-kubernetes/pull/7252) | ovnk | Scope RA update reconciliation in networkmanager | H1, consumer side | **Merged 2026-11-20**, before #7255 |
-| [#7320](https://github.com/ovn-kubernetes/ovn-kubernetes/pull/7320) | ovnk | Filter generated configs before sort | H2 x H3 | Approved |
-| [#7313](https://github.com/ovn-kubernetes/ovn-kubernetes/pull/7313) | ovnk | Clean up orphaned FRR configs on startup | H3 hygiene | Awaiting review |
+| [#7320](https://github.com/ovn-kubernetes/ovn-kubernetes/pull/7320) | ovnk | Filter generated configs before sort | H2 x H3 | **Merged 2026-11-24** |
+| [#7138](https://github.com/ovn-kubernetes/ovn-kubernetes/pull/7138) | ovnk | Handle node failures without blocking other nodes | H1 (adds a confirmation pass per RA) | **Merged 2026-11-20**; not in the original list |
+| [#7313](https://github.com/ovn-kubernetes/ovn-kubernetes/pull/7313) | ovnk | Clean up orphaned FRR configs on startup | H3 hygiene | Approved |
 | [#7250](https://github.com/ovn-kubernetes/ovn-kubernetes/pull/7250) | ovnk | Kernel-side route dump filtering | H7 | In review; kernel ≥ 5.7 versus fallback unresolved |
 | [frr-k8s#536](https://github.com/metallb/frr-k8s/pull/536) | frr-k8s | Cached admission reads | H13 | Open, no reviews |
 | [frr-k8s#529](https://github.com/metallb/frr-k8s/pull/529) | frr-k8s | Resolve each selector once per admission | H13 | Open, no reviews |
@@ -336,9 +408,10 @@ flowchart LR
 | Knob > 1 without #7255 | Lost-update window becomes routine with overlapping selectors | #7255 must merge first |
 | #7252 without #7255 | A lost annotation entry becomes a skipped network | #7255 first |
 
-**Suggested merge order:** #7255 (now urgent, since #7252 has merged), then #7313 and #7320
-(independent and low risk), then frr-k8s #536, then #7304 and the knob. #7250 and frr-k8s #529
-and #537 are independent.
+**Suggested merge order:** #7255 (now urgent, since #7252 has merged), then #7313
+(independent and low risk; #7320 has merged), then frr-k8s #536, then #7304 and the knob.
+#7250 and frr-k8s #529 and #537 are independent. Run 45302750158 strengthens the case for #536
+before any parallelism: admission is where the extra writes in flight queue.
 
 ---
 
@@ -360,6 +433,11 @@ All rates and durations as means (`rate(_sum) / rate(_count)`), not p99s.
 | All | `bgpCRObjectCount{resource="frrconfigurations..."}` | Unchanged; guards against leaks |
 
 ### To add, needed to see H13 and the contention
+
+The admission, write and LIST queries and `routeImportSyncDurationMean` are in #7077's lanes as
+`frrAdmissionDurationSumRate`, `frrWriteDurationSumRate`, `frrRelatedListRate` and their
+count companions, with `frrWebhookThrottledPeriodRate` for the webhook's CPU limit. The
+in-flight and rest-client queries are still to add.
 
 | Query | Why |
 |---|---|
@@ -386,8 +464,8 @@ All rates and durations as means (`rate(_sum) / rate(_count)`), not p99s.
 | 7 | Route import | #7250, constant factor | Incremental apply untouched |
 | 8, 8b | EVPN | — | **Nothing measured or proposed** |
 | 9, 10, 11 | EgressIP, isolation, node resyncs | — | Untested |
-| 12 | Threadiness | Knob, #7257, #7304 | Contention source unidentified |
-| 13 | Webhook admission (proposed) | frr-k8s #536, #529, #537 | Not instrumented in our lanes |
+| 12 | Threadiness | Knob, #7257, #7304 | Contention located in admission (2026-11-25); webhook CPU limit suspected, not confirmed |
+| 13 | Webhook admission (proposed) | frr-k8s #536, #529, #537 | Instrumented; 95% of a write; slope with M awaits the seeded lane |
 
 ---
 
@@ -418,6 +496,12 @@ Without it, no PR in the parallelism or admission group can be sized, and the so
   and admission through the real `validateConfig`, including a generated write admitted with
   all seeds present. A #536 A/B needs `FRR_K8S_GIT_REF` pointed at that PR's head, which
   `clone_frr` cannot fetch from a fork today.
+- **Status 2026-11-25**: run 45302750158 measured admission in six lanes (above), but the
+  seeded lane failed before creating anything. kube-burner strips every template action from
+  the raw file to learn the object's kind before rendering, which left the seed's IPv6
+  neighbour as `address: 2001:db8::`, read by YAML as a mapping key. The address is now quoted
+  (`1b0791a7f`); the stripped template decodes and the rendered seeds are byte-identical. The
+  rerun also carries the throttling query and the per-write fit.
 
 ### 2. Run a composed A/B matrix once the parallelism PRs merge
 
@@ -489,8 +573,9 @@ as its own section.
 
 ## Caveats
 
-- **One means run.** Run 43959763061 is the only run with means. Its creation-lane ratios
-  agree with the p99 runs' bucket steps, which is reassuring but not a replication.
+- **Two means runs.** Runs 43959763061 and 45302750158 agree on total work within 2% in every
+  lane they share, across #7138's change to the reconcile count. That is a replication of
+  the cost per write, not of the parallelism figures, where threads read 177 and 189 ms.
 - **kind.** Twelve nodes share one kernel, one disk and one apiserver. The 100 ms write and the
   75% contention are properties of that box. Ratios transfer better than absolute values.
 - **Downstream figures are second-hand.** The 407 ms, 60 min and 288 s figures come from PR
